@@ -1,0 +1,1178 @@
+import { useState, useRef, useEffect, useMemo } from 'react'
+import useDevice from '../hooks/useDevice.js'
+import BottomNav from '../components/BottomNav.jsx'
+
+/* ── SVG icon primitives ───────────────────────────────────── */
+const Zap = ({ size = 14, color = 'currentColor' }) => (
+  <svg width={size} height={size} fill="none" stroke={color} strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+    <path d="M12 2C12 2 9 7 9 10c0 1.5.8 2.5 2 3-.8-2 0-5 1-7 1 2 1.8 5 1 7 1.2-.5 2-1.5 2-3 0-3-3-8-3-8z"/><path d="M6 8c0 0-1 5 1 7.5 1 1.2 2.2 1.5 3.2 1-2-.5-3.5-2.5-2.8-5 .5 2 2 3.8 4 3.8-1-1-2.5-2.5-2-4.5C8.5 8 6 8 6 8z" opacity=".85"/><path d="M18 8c0 0 1 5-1 7.5-1 1.2-2.2 1.5-3.2 1 2-.5 3.5-2.5 2.8-5-.5 2-2 3.8-4 3.8 1-1 2.5-2.5 2-4.5C15.5 8 18 8 18 8z" opacity=".85"/>
+  </svg>
+)
+const ZapFilled = ({ size = 12 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" style={{ flexShrink: 0 }}>
+    <path d="M12 2C12 2 9 7 9 10c0 1.5.8 2.5 2 3-.8-2 0-5 1-7 1 2 1.8 5 1 7 1.2-.5 2-1.5 2-3 0-3-3-8-3-8z"/><path d="M6 8c0 0-1 5 1 7.5 1 1.2 2.2 1.5 3.2 1-2-.5-3.5-2.5-2.8-5 .5 2 2 3.8 4 3.8-1-1-2.5-2.5-2-4.5C8.5 8 6 8 6 8z" opacity=".85"/><path d="M18 8c0 0 1 5-1 7.5-1 1.2-2.2 1.5-3.2 1 2-.5 3.5-2.5 2.8-5-.5 2-2 3.8-4 3.8 1-1 2.5-2.5 2-4.5C15.5 8 18 8 18 8z" opacity=".85"/>
+  </svg>
+)
+const BarChart = ({ size = 18 }) => (
+  <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+    <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+    <line x1="2" y1="20" x2="22" y2="20"/>
+  </svg>
+)
+const LayoutGrid = ({ size = 18 }) => (
+  <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+    <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+    <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+  </svg>
+)
+const ShoppingBag = ({ size = 18 }) => (
+  <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+    <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+    <line x1="3" y1="6" x2="21" y2="6"/>
+    <path d="M16 10a4 4 0 0 1-8 0"/>
+  </svg>
+)
+const FileText = ({ size = 18 }) => (
+  <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+    <polyline points="14 2 14 8 20 8"/>
+    <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/>
+    <line x1="10" y1="9" x2="8" y2="9"/>
+  </svg>
+)
+const Lock = ({ size = 18 }) => (
+  <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+    <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+  </svg>
+)
+const Rocket = ({ size = 18 }) => (
+  <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+    <path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/>
+    <path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/>
+    <path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/>
+  </svg>
+)
+const BookOpen = ({ size = 20 }) => (
+  <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+    <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+  </svg>
+)
+const Lightbulb = ({ size = 20 }) => (
+  <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+    <line x1="9" y1="18" x2="15" y2="18"/><line x1="10" y1="22" x2="14" y2="22"/>
+    <path d="M15.09 14c.18-.98.65-1.74 1.41-2.5A4.65 4.65 0 0 0 18 8 6 6 0 0 0 6 8c0 1 .23 2.23 1.5 3.5A4.61 4.61 0 0 1 8.91 14"/>
+  </svg>
+)
+const GitHubIcon = ({ size = 20 }) => (
+  <svg width={size} height={size} viewBox="0 0 16 16" fill="currentColor" style={{ flexShrink: 0 }}>
+    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
+  </svg>
+)
+const MessageCircle = ({ size = 20 }) => (
+  <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+  </svg>
+)
+const MapIcon = ({ size = 20 }) => (
+  <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+    <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/>
+    <line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/>
+  </svg>
+)
+const Globe = ({ size = 18 }) => (
+  <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+    <circle cx="12" cy="12" r="10"/>
+    <line x1="2" y1="12" x2="22" y2="12"/>
+    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+  </svg>
+)
+const Moon = ({ size = 18 }) => (
+  <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+  </svg>
+)
+const Bell = ({ size = 18 }) => (
+  <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+    <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+  </svg>
+)
+const Star = ({ size = 18 }) => (
+  <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+  </svg>
+)
+const Trash = ({ size = 14 }) => (
+  <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+    <polyline points="3 6 5 6 21 6"/>
+    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+  </svg>
+)
+const PaletteIcon = ({ size = 18 }) => (
+  <svg width={size} height={size} fill="none" stroke="currentColor" strokeWidth="1.75" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
+    <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>
+    <circle cx="8.5" cy="7.5" r="1.5" fill="currentColor" stroke="none"/>
+    <circle cx="12" cy="5.5" r="1.5" fill="currentColor" stroke="none"/>
+    <circle cx="15.5" cy="7.5" r="1.5" fill="currentColor" stroke="none"/>
+    <circle cx="17.5" cy="11.5" r="1.5" fill="currentColor" stroke="none"/>
+    <circle cx="6.5" cy="11.5" r="1.5" fill="currentColor" stroke="none"/>
+  </svg>
+)
+
+/* ── Data ─────────────────────────────────────────────────── */
+const NAV_ITEMS = [
+  {
+    id: 'home', label: 'Home',
+    icon: <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink: 0 }}><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
+  },
+  {
+    id: 'search', label: 'Search',
+    icon: <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink: 0 }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>,
+  },
+  {
+    id: 'resources', label: 'Resources',
+    icon: <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink: 0 }}><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>,
+  },
+]
+
+const PROJECT_FILTERS = ['All projects', 'Starred', 'Created by me']
+const BOTTOM_TABS = ['Recently viewed', 'My projects', 'Templates']
+
+const SUGGESTION_CHIPS = [
+  { label: 'Landing page SaaS',   prompt: 'Build a modern SaaS landing page with hero, features, pricing, and CTA' },
+  { label: 'Dashboard analytics', prompt: 'Create an analytics dashboard with stat cards, charts, and sidebar nav' },
+  { label: 'App e-commerce',      prompt: 'Build an e-commerce product page with filters, cart drawer, and checkout' },
+  { label: 'Portfolio créatif',   prompt: 'Design a creative portfolio with animated project cards and contact form' },
+]
+
+const TEMPLATES = [
+  { Icon: Rocket,      title: 'Landing page', desc: 'Hero, features & CTA',   prompt: 'Build a modern SaaS landing page with animated hero, feature grid, pricing table, and CTA buttons' },
+  { Icon: BarChart,    title: 'Dashboard',    desc: 'Charts & analytics',      prompt: 'Create an analytics dashboard with stat cards, line charts, bar charts, recent activity feed, and sidebar nav' },
+  { Icon: LayoutGrid,  title: 'Portfolio',    desc: 'Showcase your work',      prompt: 'Design a minimal portfolio with animated project cards, about section, skills badges, and contact form' },
+  { Icon: ShoppingBag, title: 'E-commerce',   desc: 'Store with cart',         prompt: 'Build an e-commerce product listing page with filter sidebar, product cards, cart drawer, and checkout button' },
+  { Icon: FileText,    title: 'Blog',         desc: 'Articles & posts',        prompt: 'Create a blog with featured post hero, article card grid, category filter tabs, and newsletter signup' },
+  { Icon: Lock,        title: 'Auth page',    desc: 'Login & signup',          prompt: 'Design a modern authentication page with login/signup tabs, social login buttons, and form validation' },
+]
+
+const GRADIENTS = [
+  'linear-gradient(135deg,#E11D48,#DC2626)',
+  'linear-gradient(135deg,#D97706,#f5576c)',
+  'linear-gradient(135deg,#15803D,#00f2fe)',
+  'linear-gradient(135deg,#43e97b,#38f9d7)',
+  'linear-gradient(135deg,#fa709a,#fee140)',
+  'linear-gradient(135deg,#a18cd1,#fbc2eb)',
+  'linear-gradient(135deg,#fda085,#f6d365)',
+  'linear-gradient(135deg,#89f7fe,#66a6ff)',
+]
+
+const RESOURCES = [
+  { title: 'Documentation', Icon: BookOpen,     description: 'Guide complet pour utiliser Kiro Builder', link: '#' },
+  { title: 'Templates',     Icon: LayoutGrid,   description: 'Explore tous les templates disponibles',   link: '#' },
+  { title: 'Exemples',      Icon: Lightbulb,    description: 'Projets générés par la communauté',         link: '#' },
+  { title: 'GitHub',        Icon: GitHubIcon,   description: 'Code source de Kiro Builder',               link: 'https://github.com' },
+  { title: 'Discord',       Icon: MessageCircle,description: 'Rejoins la communauté Kiro',                link: '#' },
+  { title: 'Roadmap',       Icon: MapIcon,      description: 'Les prochaines fonctionnalités',            link: '#' },
+]
+
+// Pre-generated showcase sites visible to everyone (no login required)
+const SHOWCASE_SITES = [
+  {
+    id: 'showcase-1',
+    title: 'SaaS Landing Page',
+    desc: 'Hero animé, features, pricing et CTA',
+    gradient: 'linear-gradient(135deg,#7c3aed,#4f46e5)',
+    tags: ['Landing', 'SaaS', 'Tailwind'],
+    prompt: 'Build a modern SaaS landing page with animated hero, feature grid, pricing table, and CTA buttons',
+  },
+  {
+    id: 'showcase-2',
+    title: 'Analytics Dashboard',
+    desc: 'Stat cards, graphiques et sidebar nav',
+    gradient: 'linear-gradient(135deg,#0891b2,#06b6d4)',
+    tags: ['Dashboard', 'Charts', 'Admin'],
+    prompt: 'Create an analytics dashboard with stat cards, line charts, bar charts, recent activity feed, and sidebar nav',
+  },
+  {
+    id: 'showcase-3',
+    title: 'Portfolio Créatif',
+    desc: 'Cartes animées, compétences, contact',
+    gradient: 'linear-gradient(135deg,#e11d48,#f43f5e)',
+    tags: ['Portfolio', 'Animations', 'Contact'],
+    prompt: 'Design a minimal portfolio with animated project cards, about section, skills badges, and contact form',
+  },
+  {
+    id: 'showcase-4',
+    title: 'E-commerce Store',
+    desc: 'Filtres, panier, page produit',
+    gradient: 'linear-gradient(135deg,#d97706,#f59e0b)',
+    tags: ['E-commerce', 'Cart', 'Product'],
+    prompt: 'Build an e-commerce product listing page with filter sidebar, product cards, cart drawer, and checkout button',
+  },
+  {
+    id: 'showcase-5',
+    title: 'Blog Magazine',
+    desc: 'Articles, catégories, newsletter',
+    gradient: 'linear-gradient(135deg,#059669,#10b981)',
+    tags: ['Blog', 'Articles', 'Newsletter'],
+    prompt: 'Create a blog with featured post hero, article card grid, category filter tabs, and newsletter signup',
+  },
+  {
+    id: 'showcase-6',
+    title: 'Page Authentification',
+    desc: 'Login/signup, OAuth, validation',
+    gradient: 'linear-gradient(135deg,#7c3aed,#a855f7)',
+    tags: ['Auth', 'Login', 'Forms'],
+    prompt: 'Design a modern authentication page with login/signup tabs, social login buttons, and form validation',
+  },
+]
+
+const PLANS = [
+  {
+    name: 'Free', price: '0€', period: '/mois',
+    features: ['10 générations/mois', 'Web uniquement', 'Export ZIP', 'Watermark Kiro'],
+    cta: 'Plan actuel', current: true,
+  },
+  {
+    name: 'Pro', price: '19€', period: '/mois', badge: 'Populaire',
+    features: ['Générations illimitées', 'Web + Mobile', 'GitHub sync', 'Import ZIP/repo', 'Photo → App', 'Support prioritaire'],
+    cta: 'Upgrade Pro →', highlight: true,
+  },
+  {
+    name: 'Agency', price: '49€', period: '/mois',
+    features: ['Tout Pro', 'Multi-projets illimités', 'API Kiro', 'White label', 'Dashboard analytics'],
+    cta: 'Contacter →',
+  },
+]
+
+function getBadgeStyle(model = 'demo') {
+  if ((model || '').toLowerCase().includes('claude')) return { background: 'rgba(225,29,72,0.12)', color: '#E11D48' }
+  if (model === 'demo') return { background: 'var(--kpanel2)', color: 'var(--ksubtle)' }
+  return { background: 'rgba(16,185,129,0.12)', color: '#10b981' }
+}
+
+/* ── Global Animations ────────────────────────────────────── */
+const GLOBAL_ANIMATIONS = `
+  @keyframes themePanelIn {
+    from { opacity: 0; transform: translateY(8px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0)   scale(1);    }
+  }
+  @keyframes waveFlow {
+    0%   { background-position: 0% 50%; }
+    25%  { background-position: 100% 30%; }
+    50%  { background-position: 100% 80%; }
+    75%  { background-position: 0% 60%; }
+    100% { background-position: 0% 50%; }
+  }
+  @keyframes kiroShimmer {
+    0%   { background-position: -200% center; }
+    100% { background-position:  200% center; }
+  }
+  @keyframes inputGlow {
+    0%   { box-shadow: 0 0 0 0 rgba(225,29,72,0.0), 0 8px 40px rgba(0,0,0,0.10), 0 1px 0 rgba(255,255,255,0.8) inset; }
+    100% { box-shadow: 0 0 0 3px rgba(225,29,72,0.35), 0 8px 40px rgba(0,0,0,0.10), 0 1px 0 rgba(255,255,255,0.8) inset; }
+  }
+  @keyframes cardGlowIn {
+    from { box-shadow: 0 2px 12px rgba(225,29,72,0.08); }
+    to   { box-shadow: 0 4px 24px rgba(225,29,72,0.28), 0 0 0 1.5px rgba(225,29,72,0.45); }
+  }
+  @keyframes cardGlowOut {
+    from { box-shadow: 0 4px 24px rgba(225,29,72,0.28), 0 0 0 1.5px rgba(225,29,72,0.45); }
+    to   { box-shadow: none; }
+  }
+  @keyframes fadeSlideUp {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+`
+
+/* ── Input Card ───────────────────────────────────────────── */
+function InputCard({ prompt, setPrompt, handleKey, handleSend, fileRef, isMobile }) {
+  const [focused, setFocused] = useState(false)
+
+  return (
+    <div style={{
+      width: 'min(640px, calc(100% - 32px))', borderRadius: 24, flexShrink: 0,
+      background: 'rgba(255,255,255,0.92)',
+      backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+      boxShadow: focused
+        ? '0 0 0 3px rgba(225,29,72,0.4), 0 12px 48px rgba(0,0,0,0.15), 0 1px 0 rgba(255,255,255,0.9) inset'
+        : '0 8px 40px rgba(0,0,0,0.12), 0 1px 0 rgba(255,255,255,0.8) inset',
+      border: focused ? '1.5px solid rgba(225,29,72,0.6)' : '1.5px solid rgba(255,255,255,0.80)',
+      transition: 'box-shadow 0.25s ease, border-color 0.25s ease',
+    }}>
+      <textarea
+        value={prompt}
+        onChange={e => setPrompt(e.target.value)}
+        onKeyDown={handleKey}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        autoFocus
+        placeholder="Ask Kiro to create a..."
+        rows={isMobile ? 3 : 4}
+        style={{
+          width: '100%', background: 'transparent',
+          padding: isMobile ? '14px 16px 8px' : '18px 22px 10px',
+          fontSize: isMobile ? 14 : 15, color: 'var(--ktext)',
+          border: 'none', outline: 'none', resize: 'none',
+          fontFamily: 'system-ui', lineHeight: 1.65,
+          borderTopLeftRadius: 24, borderTopRightRadius: 24,
+        }}
+      />
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 6,
+        padding: isMobile ? '6px 12px 14px' : '6px 18px 18px',
+        borderTop: '1px solid rgba(0,0,0,0.05)',
+        borderBottomLeftRadius: 24, borderBottomRightRadius: 24,
+      }}>
+        <button onClick={() => fileRef.current?.click()} style={{ width: 30, height: 30, borderRadius: 8, border: 'none', background: 'transparent', cursor: 'pointer', color: '#999', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+        </button>
+        <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} />
+        <button style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 8, border: '1px solid #E5E5E5', background: 'transparent', cursor: 'pointer', fontSize: 11, color: '#666', fontFamily: 'system-ui', fontWeight: 500, flexShrink: 0 }}>
+          <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3" cy="6" r="0.5" fill="currentColor"/><circle cx="3" cy="12" r="0.5" fill="currentColor"/><circle cx="3" cy="18" r="0.5" fill="currentColor"/></svg>
+          Plan
+        </button>
+        <ClaudeBadge />
+        <div style={{ flex: 1 }} />
+        <button
+          onClick={() => handleSend()}
+          disabled={!prompt.trim()}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6,
+            padding: '7px 18px', borderRadius: 12,
+            fontSize: 12, fontWeight: 700, fontFamily: 'system-ui',
+            color: '#fff', border: 'none', cursor: 'pointer',
+            background: 'linear-gradient(135deg, #E11D48, #D97706)',
+            boxShadow: prompt.trim() ? '0 4px 16px rgba(225,29,72,0.45)' : 'none',
+            opacity: prompt.trim() ? 1 : 0.4,
+            transition: 'opacity 0.15s, box-shadow 0.2s',
+            flexShrink: 0,
+          }}
+          onMouseEnter={e => { if (prompt.trim()) e.currentTarget.style.boxShadow = '0 6px 20px rgba(225,29,72,0.60)' }}
+          onMouseLeave={e => { if (prompt.trim()) e.currentTarget.style.boxShadow = '0 4px 16px rgba(225,29,72,0.45)' }}
+        >
+          <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          Send
+        </button>
+      </div>
+    </div>
+  )
+}
+
+
+/* ── Upgrade Modal ────────────────────────────────────────── */
+function UpgradeModal({ onClose }) {
+  return (
+    <div
+      style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+      onClick={onClose}
+    >
+      <div
+        className="modal-animate"
+        style={{ width: 'min(880px, 95vw)', maxHeight: '90vh', borderRadius: 20, padding: '32px 28px', background: 'var(--kbg)', border: '1px solid var(--kborder)', boxShadow: '0 24px 64px rgba(0,0,0,0.25)', overflowY: 'auto' }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 28 }}>
+          <div>
+            <h2 style={{ fontSize: 18, fontWeight: 700, color: 'var(--ktext)', fontFamily: "'Syne', sans-serif", margin: 0 }}>
+              Upgrade your plan
+            </h2>
+            <p style={{ fontSize: 13, color: 'var(--kmuted)', margin: '4px 0 0', fontFamily: 'system-ui' }}>
+              Unlock more AI power for your projects
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            style={{ width: 30, height: 30, borderRadius: 8, border: '1px solid var(--kborder)', background: 'transparent', color: 'var(--kmuted)', cursor: 'pointer', fontSize: 15, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          >
+            <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16 }}>
+          {PLANS.map(plan => (
+            <div
+              key={plan.name}
+              style={{ borderRadius: 16, padding: '24px 20px', border: plan.highlight ? '2px solid var(--kaccent)' : '1px solid var(--kborder)', background: plan.highlight ? 'rgba(225,29,72,0.04)' : 'var(--kbg)', position: 'relative' }}
+            >
+              {plan.badge && (
+                <span style={{ position: 'absolute', top: -10, right: 16, fontSize: 10, fontWeight: 700, padding: '3px 10px', borderRadius: 99, background: 'var(--kaccent)', color: '#fff', fontFamily: 'system-ui' }}>
+                  {plan.badge}
+                </span>
+              )}
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--ktext)', margin: '0 0 4px', fontFamily: 'system-ui' }}>{plan.name}</h3>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 2, marginBottom: 16 }}>
+                <span style={{ fontSize: 28, fontWeight: 800, color: 'var(--ktext)', fontFamily: 'system-ui' }}>{plan.price}</span>
+                <span style={{ fontSize: 12, color: 'var(--kmuted)', fontFamily: 'system-ui' }}>{plan.period}</span>
+              </div>
+              <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 20px' }}>
+                {plan.features.map(f => (
+                  <li key={f} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--kmuted)', marginBottom: 8, fontFamily: 'system-ui' }}>
+                    <svg width="12" height="12" fill="none" stroke="#10b981" strokeWidth="2.5" viewBox="0 0 24 24" style={{ flexShrink: 0 }}><polyline points="20 6 9 17 4 12"/></svg>
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              <button style={{ width: '100%', padding: '10px 0', borderRadius: 10, fontSize: 12, fontWeight: 600, fontFamily: 'system-ui', border: plan.highlight ? 'none' : '1px solid var(--kborder)', background: plan.highlight ? 'var(--kaccent)' : 'transparent', color: plan.highlight ? '#fff' : 'var(--kmuted)', cursor: plan.current ? 'default' : 'pointer', opacity: plan.current ? 0.5 : 1, transition: 'all 0.15s' }}>
+                {plan.cta}
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/* ── Claude Badge (static, no dropdown) ──────────────────── */
+function ClaudeBadge() {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 5,
+      padding: '4px 10px 4px 7px', borderRadius: 8,
+      border: '1px solid rgba(225,29,72,0.2)',
+      background: 'rgba(225,29,72,0.08)',
+      fontSize: 11, color: '#BE123C', fontFamily: 'system-ui', fontWeight: 600,
+      flexShrink: 0,
+    }}>
+      <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#E11D48', display: 'inline-block' }} />
+      Claude Sonnet
+    </div>
+  )
+}
+
+/* ── Component ─────────────────────────────────────────────── */
+export default function HomePage({ onStart, onLoad, onOpenProject, history = [], projects = [] }) {
+  const { isMobile }                        = useDevice()
+  const [prompt, setPrompt]                 = useState('')
+  const [activeTab, setActiveTab]           = useState('Templates')
+  const [activeNav, setActiveNav]           = useState('home')
+  const [activeFilter, setActiveFilter]     = useState('All projects')
+  const [upgradeOpen, setUpgradeOpen]       = useState(false)
+  const [searchQuery, setSearchQuery]       = useState('')
+  const fileRef                             = useRef(null)
+
+  useEffect(() => {
+    if (history.length === 0) setActiveTab('Templates')
+  }, [history.length])
+
+  const handleSend = (text) => {
+    const msg = (text || prompt).trim()
+    if (msg) onStart(msg, 'anthropic')
+  }
+
+  const handleKey = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend() }
+  }
+
+  /* ── Sidebar ─────────────────────────────────────────────── */
+  const Sidebar = (
+    <aside style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', background: 'var(--kbg)', borderRight: '1px solid var(--kborder)', overflow: 'hidden' }}>
+      <style>{GLOBAL_ANIMATIONS}</style>
+      {/* Logo */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '0 14px', height: 56, flexShrink: 0 }}>
+        <div style={{ width: 22, height: 22, borderRadius: 7, background: 'linear-gradient(135deg, #E11D48, #D97706)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0, boxShadow: '0 2px 10px rgba(225,29,72,0.50)' }}>
+          <ZapFilled size={11} />
+        </div>
+        <span style={{
+          fontWeight: 800, fontSize: 15, letterSpacing: '0.08em', whiteSpace: 'nowrap',
+          fontFamily: "'Syne', sans-serif",
+          background: 'linear-gradient(90deg, #FB7185 0%, #D97706 40%, #FB7185 60%, #E11D48 100%)',
+          backgroundSize: '200% auto',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          backgroundClip: 'text',
+          animation: 'kiroShimmer 7s linear infinite',
+        }}>KIRO</span>
+      </div>
+      {/* Separator */}
+      <div style={{ height: 1, background: 'var(--kborder)', flexShrink: 0, margin: '0 0 2px' }} />
+
+      {/* Nav items */}
+      <div style={{ padding: '10px 8px 0', display: 'flex', flexDirection: 'column', gap: 2, flexShrink: 0 }}>
+        {NAV_ITEMS.map(n => (
+          <button key={n.id} onClick={() => setActiveNav(n.id)} style={{ position: 'relative', width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '6px 10px 6px 13px', borderRadius: 8, fontSize: 12, fontFamily: 'system-ui, sans-serif', border: 'none', cursor: 'pointer', textAlign: 'left', background: activeNav === n.id ? 'var(--kpanel2)' : 'transparent', color: activeNav === n.id ? 'var(--ktext)' : 'var(--kmuted)', fontWeight: activeNav === n.id ? 500 : 400, transition: 'all 0.15s', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {activeNav === n.id && (
+              <span style={{ position: 'absolute', left: 0, top: '20%', bottom: '20%', width: 3, borderRadius: 99, background: '#E11D48' }} />
+            )}
+            {n.icon}
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{n.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Projects list */}
+      <div style={{ padding: '16px 8px 0', flex: 1, overflowY: 'auto', minHeight: 0 }}>
+        <div style={{ padding: '0 10px', marginBottom: 6, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <p style={{ fontSize: 10, fontWeight: 600, color: 'var(--ksubtle)', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'system-ui', margin: 0 }}>MES PROJETS</p>
+          <span style={{ fontSize: 14, color: 'var(--ksubtle)', cursor: 'pointer', lineHeight: 1 }} title="Nouveau projet">+</span>
+        </div>
+        {projects.length === 0 && (
+          <p style={{ padding: '8px 10px', fontSize: 11, color: 'var(--ksubtle)', fontFamily: 'system-ui' }}>Aucun projet</p>
+        )}
+        {projects.slice(0, 30).map(p => (
+          <button
+            key={p.id}
+            onClick={() => onOpenProject?.(p)}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', gap: 8,
+              padding: '7px 10px', borderRadius: 8, fontSize: 11,
+              fontFamily: 'system-ui, sans-serif', border: 'none', cursor: 'pointer',
+              textAlign: 'left', background: 'transparent', color: 'var(--kmuted)',
+              fontWeight: 400, whiteSpace: 'nowrap', overflow: 'hidden',
+              textOverflow: 'ellipsis', transition: 'all 0.15s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--kpanel2)'; e.currentTarget.style.color = 'var(--ktext)' }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = 'var(--kmuted)' }}
+          >
+            <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" style={{ flexShrink: 0, opacity: 0.5 }}>
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+            </svg>
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* Upgrade */}
+      <div style={{ padding: 10, borderTop: '1px solid var(--kborder)', flexShrink: 0 }}>
+        <button
+          onClick={() => setUpgradeOpen(true)}
+          onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 18px rgba(225,29,72,0.55)' }}
+          onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 2px 10px rgba(225,29,72,0.30)' }}
+          style={{ width: '100%', padding: '8px 0', borderRadius: 99, fontSize: 11, fontWeight: 600, color: '#fff', background: 'linear-gradient(135deg, #E11D48, #D97706)', border: 'none', cursor: 'pointer', fontFamily: 'system-ui', transition: 'box-shadow 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, boxShadow: '0 2px 10px rgba(225,29,72,0.30)' }}
+        >
+          <Star size={12} />
+          Upgrade
+        </button>
+      </div>
+    </aside>
+  )
+
+  /* ── Main content ────────────────────────────────────────── */
+  const Main = (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minWidth: 0, overflow: 'hidden', background: 'var(--kbg)', position: 'relative' }}>
+      {/* Inject animations for mobile (desktop gets it from Sidebar) */}
+      {isMobile && <style>{GLOBAL_ANIMATIONS}</style>}
+
+      {/* Gradient hero */}
+      <div
+        className="home-gradient"
+        style={{
+          flex: '0 0 auto', display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          padding: isMobile ? '24px 16px 20px' : '32px 24px 28px',
+          minHeight: isMobile ? 0 : 'min(52vh, 420px)',
+          position: 'relative', zIndex: 10,
+          background: 'linear-gradient(-45deg, #E11D48, #DC2626, #D97706, #15803D, #BE123C, #B91C1C)',
+          backgroundSize: '400% 400%',
+          animation: 'waveFlow 18s ease infinite',
+          overflow: 'hidden',
+        }}
+      >
+
+        <div style={{ position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', animation: 'fadeSlideUp 0.5s ease forwards' }}>
+        <h1 style={{
+          fontFamily: "'Syne', sans-serif", fontWeight: 800,
+          fontSize: isMobile ? 'clamp(1.7rem, 6vw, 2.4rem)' : 'clamp(2rem, 4.5vw, 3.2rem)',
+          letterSpacing: '-0.03em', lineHeight: 1.1,
+          color: '#fff', textAlign: 'center', marginBottom: 12,
+          textRendering: 'optimizeLegibility', WebkitFontSmoothing: 'antialiased',
+          textShadow: '0 2px 20px rgba(0,0,0,0.25), 0 0 60px rgba(255,255,255,0.15)',
+          maxWidth: 640,
+        }}>
+          What should we build?
+        </h1>
+        <p style={{
+          fontSize: isMobile ? 14 : 16,
+          color: 'rgba(255,255,255,0.82)',
+          textAlign: 'center', marginBottom: 24,
+          fontFamily: "'Syne', sans-serif",
+          letterSpacing: '0.02em',
+          fontWeight: 400,
+          maxWidth: 420,
+          lineHeight: 1.6,
+          textShadow: '0 1px 8px rgba(0,0,0,0.15)',
+        }}>
+          Describe your app and Kiro will build it
+        </p>
+
+        {/* Suggestion chips */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 8, marginBottom: 20, maxWidth: 640 }}>
+          {SUGGESTION_CHIPS.map(c => (
+            <button key={c.label} onClick={() => handleSend(c.prompt)} style={{ padding: '8px 16px', borderRadius: 99, fontSize: 12, fontWeight: 500, fontFamily: 'system-ui', background: 'rgba(255,255,255,0.15)', border: '1px solid rgba(255,255,255,0.35)', color: '#fff', cursor: 'pointer', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', whiteSpace: 'nowrap', transition: 'background 0.15s', display: 'flex', alignItems: 'center', gap: 5 }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.25)' }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.15)' }}
+            >
+              <span style={{ fontSize: 10, opacity: 0.9 }}>✦</span>
+              {c.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Input card */}
+        <InputCard
+          prompt={prompt} setPrompt={setPrompt} handleKey={handleKey}
+          handleSend={handleSend} fileRef={fileRef} isMobile={isMobile}
+        />
+        </div>{/* end inner zIndex:1 wrapper */}
+      </div>
+
+      {/* Bottom section */}
+      <div style={{ flex: 1, minHeight: 220, display: 'flex', flexDirection: 'column', borderTop: '1px solid var(--kborder)', background: 'var(--kpanel)', overflow: 'hidden' }}>
+        {/* Tabs row */}
+        <div style={{ display: 'flex', padding: '0 16px', borderBottom: '1px solid var(--kborder)', flexShrink: 0, overflowX: 'auto' }}>
+          {BOTTOM_TABS.map(tab => (
+            <button key={tab} onClick={() => setActiveTab(tab)} style={{ padding: '12px 16px', fontSize: 12, fontWeight: 500, fontFamily: 'system-ui', border: 'none', cursor: 'pointer', background: 'transparent', marginBottom: -1, borderBottom: `2px solid ${activeTab === tab ? '#E11D48' : 'transparent'}`, color: activeTab === tab ? 'var(--kaccent)' : 'var(--ksubtle)', whiteSpace: 'nowrap', transition: 'all 0.15s' }}>
+              {tab}
+            </button>
+          ))}
+        </div>
+
+        {/* Tab content */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
+
+          {/* Templates */}
+          {activeTab === 'Templates' && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 10 }}>
+              {TEMPLATES.map(t => (
+                <button key={t.title} onClick={() => handleSend(t.prompt)}
+                  style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: 14, borderRadius: 16, textAlign: 'left', cursor: 'pointer', border: '1px solid var(--kborder)', background: 'var(--kbg)', transition: 'all 0.22s ease' }}
+                  onMouseEnter={e => {
+                    e.currentTarget.style.borderColor = 'rgba(225,29,72,0.4)'
+                    e.currentTarget.style.boxShadow = '0 4px 24px rgba(225,29,72,0.22), 0 0 0 1px rgba(225,29,72,0.35)'
+                    e.currentTarget.style.transform = 'translateY(-3px)'
+                    e.currentTarget.style.background = 'rgba(225,29,72,0.04)'
+                  }}
+                  onMouseLeave={e => {
+                    e.currentTarget.style.borderColor = 'var(--kborder)'
+                    e.currentTarget.style.boxShadow = 'none'
+                    e.currentTarget.style.transform = 'translateY(0)'
+                    e.currentTarget.style.background = 'var(--kbg)'
+                  }}
+                >
+                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg, rgba(225,29,72,0.12), rgba(225,29,72,0.04))', border: '1px solid rgba(225,29,72,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 10, color: '#E11D48', flexShrink: 0 }}>
+                    <t.Icon size={16} />
+                  </div>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ktext)', fontFamily: "'Syne', sans-serif", lineHeight: 1.3 }}>{t.title}</span>
+                  <span style={{ fontSize: 11, color: 'var(--ksubtle)', marginTop: 3, fontFamily: 'system-ui', lineHeight: 1.4 }}>{t.desc}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Recently viewed */}
+          {activeTab === 'Recently viewed' && (() => {
+            const filtered = activeFilter === 'Starred' ? [] : history.slice(0, 8)
+            if (history.length === 0) return (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', textAlign: 'center', paddingTop: 20 }}>
+                <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--kpanel2)', border: '1px solid var(--kborder)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
+                  <svg width="20" height="20" fill="none" stroke="var(--ksubtle)" strokeWidth="1.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                </div>
+                <p style={{ fontSize: 13, color: 'var(--ksubtle)', fontFamily: 'system-ui', fontWeight: 500 }}>No recent projects</p>
+                <p style={{ fontSize: 11, color: 'var(--ksubtle)', marginTop: 4, fontFamily: 'system-ui', opacity: 0.7 }}>Generate your first app above</p>
+              </div>
+            )
+            if (filtered.length === 0) return (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', textAlign: 'center', paddingTop: 20 }}>
+                <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--kpanel2)', border: '1px solid var(--kborder)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
+                  <svg width="20" height="20" fill="none" stroke="var(--ksubtle)" strokeWidth="1.5" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                </div>
+                <p style={{ fontSize: 13, color: 'var(--ksubtle)', fontFamily: 'system-ui', fontWeight: 500 }}>Aucun projet favori</p>
+                <p style={{ fontSize: 11, color: 'var(--ksubtle)', marginTop: 4, fontFamily: 'system-ui', opacity: 0.7 }}>Marque une génération comme favorite pour la retrouver ici</p>
+              </div>
+            )
+            return (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12 }}>
+                {filtered.map((h, idx) => (
+                  <button key={h.id} onClick={() => onLoad?.(h)} style={{ display: 'flex', flexDirection: 'column', borderRadius: 16, border: '1px solid var(--kborder)', background: 'var(--kbg)', minHeight: 120, overflow: 'hidden', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s' }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = '#ddd6fe'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(225,29,72,0.12)'; e.currentTarget.style.transform = 'translateY(-2px)' }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--kborder)'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'translateY(0)' }}
+                  >
+                    <div style={{ width: '100%', height: 52, background: GRADIENTS[idx % GRADIENTS.length], flexShrink: 0 }} />
+                    <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ktext)', fontFamily: 'system-ui', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>{h.message}</span>
+                      <span style={{ fontSize: 10, color: 'var(--ksubtle)', marginTop: 4, fontFamily: 'system-ui' }}>{new Date(h.timestamp).toLocaleDateString('fr', { month: 'short', day: 'numeric' })}</span>
+                      <span style={{ marginTop: 'auto', paddingTop: 6, fontSize: 10, padding: '2px 8px', borderRadius: 99, fontFamily: 'system-ui', fontWeight: 500, alignSelf: 'flex-start', ...getBadgeStyle(h.model) }}>{h.model || 'demo'}</span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )
+          })()}
+
+          {/* My projects — loaded from backend API */}
+          {activeTab === 'My projects' && (
+            projects.length === 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', textAlign: 'center', paddingTop: 20 }}>
+                <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--kpanel2)', border: '1px solid var(--kborder)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
+                  <svg width="20" height="20" fill="none" stroke="var(--ksubtle)" strokeWidth="1.5" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                </div>
+                <p style={{ fontSize: 13, color: 'var(--ksubtle)', fontFamily: 'system-ui', fontWeight: 500 }}>No saved projects</p>
+                <p style={{ fontSize: 11, color: 'var(--ksubtle)', marginTop: 4, fontFamily: 'system-ui', opacity: 0.7 }}>Generate your first app above</p>
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12 }}>
+                {projects.slice(0, 30).map((p, idx) => (
+                  <button key={p.id} onClick={() => onLoad?.(p)} style={{ display: 'flex', flexDirection: 'column', borderRadius: 16, border: '1px solid var(--kborder)', background: 'var(--kbg)', minHeight: 120, overflow: 'hidden', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s' }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = '#ddd6fe'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(225,29,72,0.12)'; e.currentTarget.style.transform = 'translateY(-2px)' }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--kborder)'; e.currentTarget.style.boxShadow = 'none'; e.currentTarget.style.transform = 'translateY(0)' }}
+                  >
+                    <div style={{ width: '100%', height: 52, background: GRADIENTS[idx % GRADIENTS.length], flexShrink: 0 }} />
+                    <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ktext)', fontFamily: 'system-ui', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>{p.name || p.id}</span>
+                      <span style={{ fontSize: 10, color: 'var(--ksubtle)', marginTop: 4, fontFamily: 'system-ui' }}>{p.created_at ? new Date(p.created_at).toLocaleDateString('fr', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}</span>
+                      <span style={{ marginTop: 'auto', paddingTop: 6, fontSize: 10, padding: '2px 8px', borderRadius: 99, fontFamily: 'system-ui', fontWeight: 500, alignSelf: 'flex-start', background: 'rgba(225,29,72,0.1)', color: '#E11D48', border: '1px solid rgba(225,29,72,0.2)' }}>
+                        {p.stack?.length > 0 ? p.stack.join(', ') : 'Project'}
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )
+          )}
+        </div>
+      </div>
+    </div>
+  )
+
+  /* ── Mobile Search View ─────────────────────────────────── */
+  const [mobileSearch, setMobileSearch] = useState('')
+  const searchResults   = mobileSearch.trim() ? history.filter(h => h.message.toLowerCase().includes(mobileSearch.toLowerCase())) : []
+  const searchTemplates = mobileSearch.trim() ? TEMPLATES.filter(t => t.title.toLowerCase().includes(mobileSearch.toLowerCase()) || t.desc.toLowerCase().includes(mobileSearch.toLowerCase())) : TEMPLATES
+
+  const MobileSearchView = (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--kbg)' }}>
+      <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid var(--kborder)', flexShrink: 0 }}>
+        <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--ktext)', margin: '0 0 12px', fontFamily: "'Syne', sans-serif" }}>Search</h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 12, background: 'var(--kpanel2)', border: '1px solid var(--kborder)' }}>
+          <svg width="16" height="16" fill="none" stroke="var(--ksubtle)" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input value={mobileSearch} onChange={e => setMobileSearch(e.target.value)} placeholder="Search projects, templates..." autoFocus style={{ flex: 1, fontSize: 14, color: 'var(--ktext)', background: 'transparent', border: 'none', outline: 'none', fontFamily: 'system-ui' }} />
+          {mobileSearch && (
+            <button onClick={() => setMobileSearch('')} style={{ background: 'none', border: 'none', color: 'var(--ksubtle)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          )}
+        </div>
+      </div>
+      <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
+        {mobileSearch.trim() && searchResults.length > 0 && (
+          <>
+            <p style={{ fontSize: 10, fontWeight: 600, color: 'var(--ksubtle)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8, fontFamily: 'system-ui' }}>Projects</p>
+            {searchResults.map(h => (
+              <button key={h.id} onClick={() => onLoad?.(h)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 12, border: '1px solid var(--kborder)', background: 'var(--kbg)', cursor: 'pointer', marginBottom: 8, textAlign: 'left' }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg,#E11D48,#DC2626)', flexShrink: 0 }}/>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--ktext)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: 'system-ui' }}>{h.message}</p>
+                  <p style={{ fontSize: 10, color: 'var(--ksubtle)', margin: '2px 0 0', fontFamily: 'system-ui' }}>{new Date(h.timestamp).toLocaleDateString('en', { month: 'short', day: 'numeric' })}</p>
+                </div>
+              </button>
+            ))}
+          </>
+        )}
+        <p style={{ fontSize: 10, fontWeight: 600, color: 'var(--ksubtle)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8, marginTop: mobileSearch.trim() && searchResults.length > 0 ? 16 : 0, fontFamily: 'system-ui' }}>Templates</p>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          {searchTemplates.map(t => (
+            <button key={t.title} onClick={() => handleSend(t.prompt)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: 12, borderRadius: 14, border: '1px solid var(--kborder)', background: 'var(--kbg)', cursor: 'pointer', textAlign: 'left' }}>
+              <span style={{ color: 'var(--kmuted)', marginBottom: 6 }}><t.Icon size={16} /></span>
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ktext)', fontFamily: 'system-ui' }}>{t.title}</span>
+              <span style={{ fontSize: 10, color: 'var(--ksubtle)', marginTop: 2, fontFamily: 'system-ui' }}>{t.desc}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+
+  /* ── Mobile Projects View ──────────────────────────────── */
+  const MobileProjectsView = (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--kbg)' }}>
+      <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid var(--kborder)', flexShrink: 0 }}>
+        <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--ktext)', margin: 0, fontFamily: "'Syne', sans-serif" }}>Projects</h2>
+      </div>
+      <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
+        {history.length === 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', textAlign: 'center' }}>
+            <div style={{ width: 48, height: 48, borderRadius: '50%', background: 'var(--kpanel2)', border: '1px solid var(--kborder)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 14 }}>
+              <svg width="22" height="22" fill="none" stroke="var(--ksubtle)" strokeWidth="1.5" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            </div>
+            <p style={{ fontSize: 14, color: 'var(--ktext)', fontWeight: 600, fontFamily: 'system-ui', margin: '0 0 4px' }}>No projects yet</p>
+            <p style={{ fontSize: 12, color: 'var(--ksubtle)', fontFamily: 'system-ui' }}>Generate your first app from the Home tab</p>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 10 }}>
+            {history.map((h, idx) => (
+              <button key={h.id} onClick={() => onLoad?.(h)} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 12, borderRadius: 14, border: '1px solid var(--kborder)', background: 'var(--kbg)', cursor: 'pointer', textAlign: 'left', width: '100%' }}>
+                <div style={{ width: 44, height: 44, borderRadius: 12, background: GRADIENTS[idx % GRADIENTS.length], flexShrink: 0 }}/>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--ktext)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: 'system-ui' }}>{h.message}</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4 }}>
+                    <span style={{ fontSize: 10, color: 'var(--ksubtle)', fontFamily: 'system-ui' }}>{new Date(h.timestamp).toLocaleDateString('en', { month: 'short', day: 'numeric' })}</span>
+                    <span style={{ fontSize: 9, padding: '1px 6px', borderRadius: 99, fontFamily: 'system-ui', fontWeight: 500, ...getBadgeStyle(h.model) }}>{h.model || 'demo'}</span>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+
+  /* ── Settings style helpers ── */
+  const sectionLabelStyle = { fontSize: 10, fontWeight: 600, color: 'var(--ksubtle)', textTransform: 'uppercase', letterSpacing: '0.08em', fontFamily: 'system-ui', margin: '14px 0 6px' }
+  const settingsCardStyle = { padding: '14px 16px', borderRadius: 14, border: '1px solid var(--kborder)', background: 'var(--kbg)' }
+  const inputLabelStyle   = { display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--ksubtle)', marginBottom: 4, fontFamily: 'system-ui', textTransform: 'uppercase', letterSpacing: '0.06em' }
+  const inputFieldStyle   = { width: '100%', padding: '8px 12px', borderRadius: 8, border: '1px solid var(--kborder)', background: 'var(--kpanel2)', color: 'var(--ktext)', fontSize: 13, fontFamily: 'system-ui', outline: 'none' }
+
+  const MobileSettingsView = (
+    <div data-settings-tab style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'var(--kbg)' }}>
+      <div style={{ padding: '16px 16px 12px', borderBottom: '1px solid var(--kborder)', flexShrink: 0 }}>
+        <h2 style={{ fontSize: 16, fontWeight: 700, color: 'var(--ktext)', margin: 0, fontFamily: "'Syne', sans-serif" }}>Settings</h2>
+      </div>
+      <div style={{ flex: 1, overflowY: 'auto', padding: 16 }}>
+
+        {/* Account */}
+        <p style={sectionLabelStyle}>Account</p>
+        <div style={{ ...settingsCardStyle, marginBottom: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
+            <div style={{ width: 44, height: 44, borderRadius: 12, background: 'linear-gradient(135deg, #E11D48, #D97706)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 18, fontWeight: 700, flexShrink: 0 }}>K</div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--ktext)', margin: 0, fontFamily: 'system-ui' }}>Kiro User</p>
+              <p style={{ fontSize: 11, color: 'var(--ksubtle)', margin: '2px 0 0', fontFamily: 'system-ui' }}>Free Plan</p>
+            </div>
+          </div>
+          <div style={{ marginBottom: 10 }}>
+            <label style={inputLabelStyle}>Email</label>
+            <input type="email" placeholder="your@email.com" defaultValue="" style={inputFieldStyle} />
+          </div>
+          <div>
+            <label style={inputLabelStyle}>Display Name</label>
+            <input type="text" placeholder="Your name" defaultValue="" style={inputFieldStyle} />
+          </div>
+        </div>
+
+        {/* Language */}
+        <p style={sectionLabelStyle}>Language</p>
+        <div style={{ ...settingsCardStyle, marginBottom: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--kpanel2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <Globe size={16} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--ktext)', margin: 0, fontFamily: 'system-ui' }}>Interface Language</p>
+              <p style={{ fontSize: 11, color: 'var(--ksubtle)', margin: '2px 0 0', fontFamily: 'system-ui' }}>Language of the UI</p>
+            </div>
+            <select defaultValue="fr" style={{ padding: '6px 10px', borderRadius: 8, border: '1px solid var(--kborder)', background: 'var(--kpanel2)', color: 'var(--ktext)', fontSize: 12, fontFamily: 'system-ui', outline: 'none', cursor: 'pointer' }}>
+              <option value="fr">Français</option>
+              <option value="en">English</option>
+              <option value="es">Español</option>
+              <option value="de">Deutsch</option>
+              <option value="ja">日本語</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Integrations */}
+        <p style={sectionLabelStyle}>Integrations</p>
+        <div style={{ ...settingsCardStyle, marginBottom: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <svg width="22" height="22" viewBox="0 0 16 16" fill="var(--ktext)"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--ktext)', margin: 0, fontFamily: 'system-ui' }}>GitHub</p>
+              <p style={{ fontSize: 11, color: 'var(--ksubtle)', margin: '2px 0 0', fontFamily: 'system-ui' }}>Deploy & sync your projects</p>
+            </div>
+            <button onClick={() => setUpgradeOpen(true)} style={{ padding: '6px 14px', borderRadius: 8, border: '1px solid var(--kborder)', background: 'var(--kpanel2)', color: 'var(--ktext)', fontSize: 12, fontWeight: 600, fontFamily: 'system-ui', cursor: 'pointer' }}>Connect</button>
+          </div>
+        </div>
+
+        {/* Appearance */}
+        <p style={sectionLabelStyle}>Appearance</p>
+        <div style={{ ...settingsCardStyle, marginBottom: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--kpanel2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Moon size={16} />
+              </div>
+              <div>
+                <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--ktext)', margin: 0, fontFamily: 'system-ui' }}>Dark Mode</p>
+                <p style={{ fontSize: 11, color: 'var(--ksubtle)', margin: '2px 0 0', fontFamily: 'system-ui' }}>Toggle dark theme</p>
+              </div>
+            </div>
+            <button onClick={() => { const d = document.documentElement.classList.toggle('dark'); localStorage.setItem('kiro-dark', d) }} style={{ width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer', background: document.documentElement.classList.contains('dark') ? '#E11D48' : '#d1d5db', position: 'relative', transition: 'background 0.2s' }}>
+              <span style={{ position: 'absolute', top: 2, left: document.documentElement.classList.contains('dark') ? 22 : 2, width: 20, height: 20, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}/>
+            </button>
+          </div>
+        </div>
+
+        {/* Notifications */}
+        <div style={{ ...settingsCardStyle, marginBottom: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 32, height: 32, borderRadius: 8, background: 'var(--kpanel2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Bell size={16} />
+              </div>
+              <div>
+                <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--ktext)', margin: 0, fontFamily: 'system-ui' }}>Notifications</p>
+                <p style={{ fontSize: 11, color: 'var(--ksubtle)', margin: '2px 0 0', fontFamily: 'system-ui' }}>Email and push alerts</p>
+              </div>
+            </div>
+            <button style={{ width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer', background: '#E11D48', position: 'relative', transition: 'background 0.2s' }}>
+              <span style={{ position: 'absolute', top: 2, left: 22, width: 20, height: 20, borderRadius: '50%', background: '#fff', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }}/>
+            </button>
+          </div>
+        </div>
+
+        {/* Subscription */}
+        <p style={sectionLabelStyle}>Subscription</p>
+        <button onClick={() => setUpgradeOpen(true)} style={{ display: 'flex', alignItems: 'center', gap: 10, ...settingsCardStyle, cursor: 'pointer', width: '100%', textAlign: 'left', marginBottom: 10 }}>
+          <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(225,29,72,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Star size={16} />
+          </div>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--ktext)', margin: 0, fontFamily: 'system-ui' }}>Upgrade Plan</p>
+            <p style={{ fontSize: 11, color: 'var(--ksubtle)', margin: '2px 0 0', fontFamily: 'system-ui' }}>Unlock Pro features & more AI models</p>
+          </div>
+          <svg width="14" height="14" fill="none" stroke="var(--ksubtle)" strokeWidth="2" viewBox="0 0 24 24" style={{ flexShrink: 0 }}><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+
+        {/* About */}
+        <p style={sectionLabelStyle}>About</p>
+        <div style={{ ...settingsCardStyle, marginBottom: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+            <div style={{ width: 28, height: 28, borderRadius: 8, background: '#E11D48', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', flexShrink: 0 }}>
+              <ZapFilled size={12} />
+            </div>
+            <div>
+              <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--ktext)', margin: 0, fontFamily: 'system-ui' }}>Kiro Builder</p>
+              <p style={{ fontSize: 10, color: 'var(--ksubtle)', margin: '2px 0 0', fontFamily: 'system-ui' }}>v2.0.0 — AI Web App Generator</p>
+            </div>
+          </div>
+          <p style={{ fontSize: 11, color: 'var(--kmuted)', lineHeight: 1.6, margin: 0, fontFamily: 'system-ui' }}>
+            Describe your app and Kiro will generate it instantly. Built with React, Vite & Claude AI.
+          </p>
+        </div>
+
+        {/* Danger zone */}
+        <p style={sectionLabelStyle}>Danger Zone</p>
+        <button style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', padding: '12px 16px', borderRadius: 14, border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.05)', cursor: 'pointer', textAlign: 'left', marginBottom: 16 }}>
+          <span style={{ color: '#ef4444', display: 'flex' }}><Trash size={16} /></span>
+          <div>
+            <p style={{ fontSize: 13, fontWeight: 600, color: '#ef4444', margin: 0, fontFamily: 'system-ui' }}>Delete Account</p>
+            <p style={{ fontSize: 11, color: 'rgba(239,68,68,0.7)', margin: '2px 0 0', fontFamily: 'system-ui' }}>Permanently delete your data</p>
+          </div>
+        </button>
+      </div>
+    </div>
+  )
+
+  /* ── Desktop Search View ────────────────────────────────── */
+  const deskSearchResults   = searchQuery.trim() ? history.filter(h => h.message.toLowerCase().includes(searchQuery.toLowerCase())) : history
+  const deskSearchTemplates = searchQuery.trim() ? TEMPLATES.filter(t => t.title.toLowerCase().includes(searchQuery.toLowerCase()) || t.desc.toLowerCase().includes(searchQuery.toLowerCase())) : TEMPLATES
+
+  const SearchView = (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--kbg)' }}>
+      <div style={{ padding: '28px 32px 20px', borderBottom: '1px solid var(--kborder)', flexShrink: 0 }}>
+        <h2 style={{ fontSize: 20, fontWeight: 700, color: 'var(--ktext)', margin: '0 0 16px', fontFamily: "'Syne', sans-serif" }}>Search</h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', borderRadius: 12, background: 'var(--kpanel2)', border: '1px solid var(--kborder)' }}>
+          <svg width="16" height="16" fill="none" stroke="var(--ksubtle)" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Rechercher un projet ou template..." autoFocus style={{ flex: 1, fontSize: 14, color: 'var(--ktext)', background: 'transparent', border: 'none', outline: 'none', fontFamily: 'system-ui' }} />
+          {searchQuery && (
+            <button onClick={() => setSearchQuery('')} style={{ background: 'none', border: 'none', color: 'var(--ksubtle)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            </button>
+          )}
+        </div>
+      </div>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '24px 32px' }}>
+        {history.length > 0 && (
+          <>
+            <p style={{ fontSize: 10, fontWeight: 600, color: 'var(--ksubtle)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10, fontFamily: 'system-ui' }}>
+              Projets {searchQuery.trim() ? `— ${deskSearchResults.length} résultat${deskSearchResults.length !== 1 ? 's' : ''}` : ''}
+            </p>
+            {deskSearchResults.length === 0 && searchQuery.trim() ? (
+              <p style={{ fontSize: 13, color: 'var(--ksubtle)', fontFamily: 'system-ui', marginBottom: 24 }}>Aucun projet trouvé pour cette recherche</p>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 10, marginBottom: 28 }}>
+                {deskSearchResults.slice(0, 6).map((h, idx) => (
+                  <button key={h.id} onClick={() => onLoad?.(h)} style={{ display: 'flex', flexDirection: 'column', borderRadius: 14, border: '1px solid var(--kborder)', background: 'var(--kbg)', overflow: 'hidden', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s' }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = '#ddd6fe'; e.currentTarget.style.boxShadow = '0 4px 16px rgba(225,29,72,0.10)' }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--kborder)'; e.currentTarget.style.boxShadow = 'none' }}
+                  >
+                    <div style={{ height: 40, background: GRADIENTS[idx % GRADIENTS.length], flexShrink: 0 }} />
+                    <div style={{ padding: '10px 12px' }}>
+                      <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--ktext)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: 'system-ui' }}>{h.message}</p>
+                      <p style={{ fontSize: 10, color: 'var(--ksubtle)', margin: '4px 0 0', fontFamily: 'system-ui' }}>{new Date(h.timestamp).toLocaleDateString('fr', { month: 'short', day: 'numeric' })}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </>
+        )}
+        <p style={{ fontSize: 10, fontWeight: 600, color: 'var(--ksubtle)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10, fontFamily: 'system-ui' }}>Templates</p>
+        {deskSearchTemplates.length === 0 ? (
+          <p style={{ fontSize: 13, color: 'var(--ksubtle)', fontFamily: 'system-ui' }}>Aucun template trouvé</p>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 10 }}>
+            {deskSearchTemplates.map(t => (
+              <button key={t.title} onClick={() => handleSend(t.prompt)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: 14, borderRadius: 14, border: '1px solid var(--kborder)', background: 'var(--kbg)', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s' }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = '#ddd6fe'; e.currentTarget.style.boxShadow = '0 2px 12px rgba(225,29,72,0.08)' }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--kborder)'; e.currentTarget.style.boxShadow = 'none' }}
+              >
+                <span style={{ color: 'var(--kmuted)', marginBottom: 8 }}><t.Icon size={20} /></span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ktext)', fontFamily: 'system-ui' }}>{t.title}</span>
+                <span style={{ fontSize: 11, color: 'var(--ksubtle)', marginTop: 2, fontFamily: 'system-ui' }}>{t.desc}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+
+  /* ── Desktop Resources View ──────────────────────────────── */
+  const SHOWCASE_ICONS = [Rocket, BarChart, LayoutGrid, ShoppingBag, FileText, Lock]
+  const ResourcesView = (
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--kbg)', overflowY: 'auto' }}>
+      {/* Hero banner */}
+      <div style={{
+        padding: '32px 32px 28px', flexShrink: 0, position: 'relative', overflow: 'hidden',
+        background: 'linear-gradient(-45deg, #E11D48, #DC2626, #D97706, #BE123C)',
+        backgroundSize: '300% 300%', animation: 'waveFlow 18s ease infinite',
+      }}>
+        <h2 style={{ fontSize: 22, fontWeight: 800, color: '#fff', margin: '0 0 6px', fontFamily: "'Syne', sans-serif", letterSpacing: '-0.02em' }}>Resources</h2>
+        <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.75)', margin: 0, fontFamily: 'system-ui' }}>Explore les exemples, docs et liens utiles</p>
+      </div>
+
+      <div style={{ padding: '24px 32px' }}>
+        {/* ── Showcase: sites générés ── */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+          <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--ktext)', margin: 0, fontFamily: "'Syne', sans-serif" }}>Sites générés par Kiro</h3>
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: 5, padding: '3px 10px',
+            borderRadius: 99, background: 'rgba(225,29,72,0.08)', border: '1px solid rgba(225,29,72,0.2)',
+            fontSize: 10, fontWeight: 600, color: '#E11D48', fontFamily: 'system-ui',
+          }}>
+            <span style={{ width: 5, height: 5, borderRadius: '50%', background: '#E11D48' }} />
+            Clique pour générer
+          </span>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 12, marginBottom: 32 }}>
+          {SHOWCASE_SITES.map((site, i) => {
+            const Icon = SHOWCASE_ICONS[i] || Rocket
+            return (
+              <button
+                key={site.id}
+                onClick={() => onStart(site.prompt)}
+                style={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'flex-start',
+                  padding: 16, borderRadius: 16, textAlign: 'left', cursor: 'pointer',
+                  border: '1px solid var(--kborder)', background: 'var(--kbg)',
+                  transition: 'all 0.22s ease',
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.borderColor = 'rgba(225,29,72,0.4)'
+                  e.currentTarget.style.boxShadow = '0 4px 24px rgba(225,29,72,0.22), 0 0 0 1px rgba(225,29,72,0.35)'
+                  e.currentTarget.style.transform = 'translateY(-3px)'
+                  e.currentTarget.style.background = 'rgba(225,29,72,0.04)'
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.borderColor = 'var(--kborder)'
+                  e.currentTarget.style.boxShadow = 'none'
+                  e.currentTarget.style.transform = 'translateY(0)'
+                  e.currentTarget.style.background = 'var(--kbg)'
+                }}
+              >
+                <div style={{
+                  width: 36, height: 36, borderRadius: '50%',
+                  background: 'linear-gradient(135deg, rgba(225,29,72,0.12), rgba(225,29,72,0.04))',
+                  border: '1px solid rgba(225,29,72,0.12)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  marginBottom: 10, color: '#E11D48', flexShrink: 0,
+                }}>
+                  <Icon size={16} />
+                </div>
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ktext)', fontFamily: "'Syne', sans-serif", lineHeight: 1.3 }}>{site.title}</span>
+                <span style={{ fontSize: 11, color: 'var(--ksubtle)', marginTop: 3, fontFamily: 'system-ui', lineHeight: 1.4 }}>{site.desc}</span>
+                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginTop: 8 }}>
+                  {site.tags.map(tag => (
+                    <span key={tag} style={{
+                      padding: '1px 7px', borderRadius: 99,
+                      background: 'var(--kpanel2)', border: '1px solid var(--kborder)',
+                      fontSize: 9, color: 'var(--ksubtle)', fontFamily: 'system-ui', fontWeight: 500,
+                    }}>{tag}</span>
+                  ))}
+                </div>
+              </button>
+            )
+          })}
+        </div>
+
+        {/* ── Links & docs ── */}
+        <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--ktext)', margin: '0 0 14px', fontFamily: "'Syne', sans-serif" }}>Liens utiles</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 12 }}>
+          {RESOURCES.map(r => (
+            <a key={r.title} href={r.link} target={r.link !== '#' ? '_blank' : undefined} rel="noreferrer"
+              style={{
+                display: 'flex', flexDirection: 'column', gap: 8, padding: '16px 14px',
+                borderRadius: 16, border: '1px solid var(--kborder)', background: 'var(--kbg)',
+                textDecoration: 'none', cursor: 'pointer', transition: 'all 0.22s ease',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.borderColor = 'rgba(225,29,72,0.4)'
+                e.currentTarget.style.boxShadow = '0 4px 24px rgba(225,29,72,0.22), 0 0 0 1px rgba(225,29,72,0.35)'
+                e.currentTarget.style.transform = 'translateY(-3px)'
+                e.currentTarget.style.background = 'rgba(225,29,72,0.04)'
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.borderColor = 'var(--kborder)'
+                e.currentTarget.style.boxShadow = 'none'
+                e.currentTarget.style.transform = 'translateY(0)'
+                e.currentTarget.style.background = 'var(--kbg)'
+              }}
+            >
+              <div style={{
+                width: 36, height: 36, borderRadius: '50%',
+                background: 'linear-gradient(135deg, rgba(225,29,72,0.12), rgba(225,29,72,0.04))',
+                border: '1px solid rgba(225,29,72,0.12)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: '#E11D48', flexShrink: 0,
+              }}>
+                <r.Icon size={16} />
+              </div>
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--ktext)', fontFamily: "'Syne', sans-serif" }}>{r.title}</span>
+              <span style={{ fontSize: 11, color: 'var(--ksubtle)', fontFamily: 'system-ui', lineHeight: 1.4 }}>{r.description}</span>
+            </a>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+
+  /* ── Layout ──────────────────────────────────────────────── */
+  if (isMobile) {
+    return (
+      <div className="page-transition" style={{ display: 'flex', flexDirection: 'column', width: '100%', height: '100%', background: 'var(--kbg)', paddingBottom: 60 }}>
+        {activeNav === 'home'     && Main}
+        {activeNav === 'search'   && MobileSearchView}
+        {activeNav === 'projects' && MobileProjectsView}
+        {activeNav === 'settings' && MobileSettingsView}
+        <BottomNav activeNav={activeNav} onNav={setActiveNav} />
+        {upgradeOpen && <UpgradeModal onClose={() => setUpgradeOpen(false)} />}
+      </div>
+    )
+  }
+
+  return (
+    <div className="page-transition" style={{ display: 'flex', width: '100%', height: '100%', background: 'var(--kbg)' }}>
+      <div style={{ width: 220, flexShrink: 0 }}>{Sidebar}</div>
+      <div style={{ flex: 1, overflow: 'hidden' }}>
+        {activeNav === 'home'      ? Main          : null}
+        {activeNav === 'search'    ? SearchView    : null}
+        {activeNav === 'resources' ? ResourcesView : null}
+      </div>
+      {upgradeOpen && <UpgradeModal onClose={() => setUpgradeOpen(false)} />}
+    </div>
+  )
+}

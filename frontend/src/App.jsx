@@ -1,0 +1,732 @@
+import { useState, useEffect, useCallback, useRef } from 'react'
+import TopBar from './components/TopBar.jsx'
+import ResizableLayout from './components/ResizableLayout.jsx'
+import StatusBar from './components/StatusBar.jsx'
+import HomePage from './pages/HomePage.jsx'
+import LoginPage from './pages/LoginPage.jsx'
+import LoginModal from './components/LoginModal.jsx'
+import ProjectManager from './components/ProjectManager.jsx'
+import { useGenerate } from './hooks/useGenerate.js'
+import { useGitHub } from './hooks/useGitHub.js'
+import { loadStack } from './components/StackSelector.jsx'
+import useDevice from './hooks/useDevice.js'
+import { useAuth } from './hooks/useAuth.jsx'
+
+
+export default function App() {
+  const { user, loading: authLoading, isAuthenticated, authEnabled, authHeaders } = useAuth()
+
+  const [showLoginModal, setShowLoginModal] = useState(false)
+  const [mainView, setMainView]       = useState('preview')
+  const [previewDevice, setPreviewDevice] = useState('desktop')
+  const [code, setCode]               = useState('')
+  const [files, setFiles]             = useState({})
+  const [activeFile, setActiveFile]   = useState('index.html')
+  const [history, setHistory]         = useState([])
+  const [apiOnline, setApiOnline]     = useState(false)
+  const [projectName, setProjectName] = useState('My Project')
+  const [toast, setToast]             = useState(null)
+  const [darkMode, setDarkMode]       = useState(() => localStorage.getItem('kiro-dark') === 'true')
+  const [sidebarOpen, setSidebarOpen]         = useState(false)
+  const [activePage, setActivePage]           = useState('home')   // 'home' | 'builder'
+  const [pendingPrompt, setPendingPrompt]     = useState(null)
+  const [generatedFilesList, setGeneratedFilesList] = useState([])
+  const [stack, setStack] = useState(() => loadStack())
+  const { isMobile } = useDevice()
+
+  // Auth-aware fetch wrapper (stable via ref so callbacks never go stale)
+  const authRef = useRef(authHeaders)
+  useEffect(() => { authRef.current = authHeaders }, [authHeaders])
+  const aFetch = useCallback((url, opts = {}) => {
+    const h = authRef.current()
+    return fetch(url, {
+      ...opts,
+      headers: { ...h, ...(opts.headers || {}) },
+    })
+  }, [])
+
+  // ── Project management ──
+  const [activeProject, setActiveProject]           = useState(null)
+  const [showProjectManager, setShowProjectManager] = useState(false)
+  const [savedSignal, setSavedSignal]               = useState(0)
+  const [projectBackups, setProjectBackups]         = useState([])
+  const [projectsList, setProjectsList]             = useState([])
+
+  // Load projects list from backend — recharge aussi quand l'API revient en ligne
+  useEffect(() => {
+    if (!apiOnline) return
+    aFetch('/api/projects')
+      .then(r => r.ok ? r.json() : null)
+      .then(data => { if (data?.projects) setProjectsList(data.projects) })
+      .catch(() => {})
+  }, [activePage, apiOnline]) // refresh when navigating back home or API reconnects
+
+  // After OAuth redirect: if user just logged in and there's a pending prompt, auto-launch it
+  useEffect(() => {
+    if (isAuthenticated) {
+      const saved = sessionStorage.getItem('kiro-pending-prompt')
+      if (saved) {
+        sessionStorage.removeItem('kiro-pending-prompt')
+        setPendingPrompt(saved)
+        setActivePage('builder')
+      }
+    }
+  }, [isAuthenticated])
+
+  // Ref always points to the latest generatedFilesList — used by handleSaveSignal without deps
+  const generatedFilesRef = useRef(generatedFilesList)
+  useEffect(() => { generatedFilesRef.current = generatedFilesList }, [generatedFilesList])
+
+  // Refs for save-triggered history — avoids deps on activeProject
+  const saveHistoryTimer = useRef(null)
+  const activeProjectRef = useRef(null)
+  useEffect(() => { activeProjectRef.current = activeProject }, [activeProject])
+
+  const handleSaveSignal = useCallback(() => {
+    setSavedSignal(s => s + 1)
+
+    // Refresh preview: use assembled route (handles Vite/React projects)
+    const pid = activeProjectRef.current?.id
+    if (pid) {
+      aFetch(`/api/projects/${pid}/assembled`)
+        .then(r => r.ok ? r.json() : null)
+        .then(data => { if (data?.html) setCode(data.html) })
+        .catch(() => {
+          // Fallback: use raw HTML file from IDE state
+          const htmlFile = generatedFilesRef.current.find(f => f.language === 'html' || f.name?.endsWith?.('.html'))
+          if (htmlFile?.content) setCode(htmlFile.content)
+        })
+    } else {
+      const htmlFile = generatedFilesRef.current.find(f => f.language === 'html' || f.name?.endsWith?.('.html'))
+      if (htmlFile?.content) setCode(htmlFile.content)
+    }
+
+    // Create a generation history entry for manual edits (debounced: 5s after last save)
+    clearTimeout(saveHistoryTimer.current)
+    saveHistoryTimer.current = setTimeout(() => {
+      const p = activeProjectRef.current?.id
+      if (!p) return
+      const commit = {
+        id:         Math.random().toString(36).slice(2, 10),
+        message:    'Modification manuelle du code',
+        timestamp:  new Date().toISOString(),
+        model:      'edit',
+        tokens:     0,
+        project_id: p,
+      }
+      setHistory(prev => {
+        const next = [commit, ...prev].slice(0, 30)
+        localStorage.setItem('kiro-history', JSON.stringify(next))
+        return next
+      })
+    }, 5000)
+  }, [])
+
+  const handleOpenProject = useCallback((project) => {
+    // 1. Clear stale state immediately so Preview + Code don't show old project data
+    setCode('')
+    setGeneratedFilesList([])
+    setProjectBackups([])
+    // 2. Activate project + switch to builder
+    setActiveProject(project)
+    setActivePage('builder')
+    setShowProjectManager(false)
+    // 3. Load project files + assembled preview + backups in parallel
+    const loadFiles = aFetch(`/api/projects/${project.id}/files/flat`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        setApiOnline(true)
+        if (data?.files?.length > 0) {
+          setGeneratedFilesList(data.files)
+        }
+      })
+      .catch(e => console.warn('[App] load project files error:', e))
+
+    // Load assembled HTML for preview (handles Vite/React projects properly)
+    const loadPreview = aFetch(`/api/projects/${project.id}/assembled`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.html) setCode(data.html)
+      })
+      .catch(e => console.warn('[App] load assembled preview error:', e))
+
+    const loadBackups = aFetch(`/api/projects/${project.id}/backups`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (data?.backups) setProjectBackups(data.backups)
+      })
+      .catch(e => console.warn('[App] load backups error:', e))
+
+    Promise.all([loadFiles, loadPreview, loadBackups])
+  }, [])
+
+  const showToast = useCallback((msg, type = 'info') => {
+    setToast({ msg, type, id: Date.now() })
+    setTimeout(() => setToast(null), 3500)
+  }, [])
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', darkMode)
+    localStorage.setItem('kiro-dark', darkMode)
+    const light = document.getElementById('hljs-light')
+    const dark  = document.getElementById('hljs-dark')
+    if (light) light.disabled = darkMode
+    if (dark)  dark.disabled  = !darkMode
+  }, [darkMode])
+
+  useEffect(() => {
+    const check = async () => {
+      try {
+        const r = await fetch('/api/health', { signal: AbortSignal.timeout(3000) })
+        setApiOnline(r.ok)
+      } catch { setApiOnline(false) }
+    }
+    check()
+    const t = setInterval(check, 8000)
+    return () => clearInterval(t)
+  }, [])
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('kiro-history') || '[]')
+      setHistory(saved)
+    } catch {}
+  }, [])
+
+  const saveHistory = useCallback((commit) => {
+    setHistory(prev => {
+      const next = [commit, ...prev].slice(0, 30)
+      localStorage.setItem('kiro-history', JSON.stringify(next))
+      return next
+    })
+  }, [])
+
+  // ── Backup helpers ──
+  const createBackup = useCallback(async (label = '') => {
+    if (!activeProject?.id) return null
+    try {
+      const r = await aFetch(`/api/projects/${activeProject.id}/backups`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ label }),
+      })
+      if (r.ok) {
+        const backup = await r.json()
+        setProjectBackups(prev => [backup, ...prev])
+        showToast('Backup créé', 'success')
+        return backup
+      }
+    } catch (e) {
+      console.warn('[App] create backup error:', e)
+    }
+    return null
+  }, [activeProject, showToast])
+
+  const restoreBackup = useCallback(async (backupId) => {
+    if (!activeProject?.id) return
+    try {
+      const r = await aFetch(`/api/projects/${activeProject.id}/backups/${backupId}/restore`, {
+        method: 'POST',
+      })
+      if (r.ok) {
+        showToast('Backup restauré !', 'success')
+        // Reload project files
+        const filesR = await aFetch(`/api/projects/${activeProject.id}/files/flat`)
+        if (filesR.ok) {
+          const data = await filesR.json()
+          if (data?.files?.length > 0) {
+            setGeneratedFilesList(data.files)
+            const htmlFile = data.files.find(f => f.language === 'html' || f.name?.endsWith('.html'))
+            if (htmlFile?.content) setCode(htmlFile.content)
+          }
+        }
+        // Reload backups list
+        const bkR = await aFetch(`/api/projects/${activeProject.id}/backups`)
+        if (bkR.ok) {
+          const bkData = await bkR.json()
+          if (bkData?.backups) setProjectBackups(bkData.backups)
+        }
+      }
+    } catch (e) {
+      console.warn('[App] restore backup error:', e)
+      showToast('Erreur restauration backup', 'error')
+    }
+  }, [activeProject, showToast])
+
+  const deleteBackup = useCallback(async (backupId) => {
+    if (!activeProject?.id) return
+    try {
+      await aFetch(`/api/projects/${activeProject.id}/backups/${backupId}`, { method: 'DELETE' })
+      setProjectBackups(prev => prev.filter(b => b.id !== backupId))
+      showToast('Backup supprimé', 'info')
+    } catch (e) {
+      console.warn('[App] delete backup error:', e)
+    }
+  }, [activeProject, showToast])
+
+  const { generate: generateRaw, loading, lastStats } = useGenerate({
+    apiOnline,
+    showToast,
+    authHeaders,
+    onSuccess: (result, prompt) => {
+      const newCode = typeof result?.code === 'string' ? result.code : ''
+      setCode(newCode)
+      setFiles(f => ({ ...f, 'index.html': newCode }))
+      setMainView('preview')
+
+      // Auto-open project if backend auto-created one
+      const pid = result.project_id || result.auto_project?.id || activeProject?.id
+      if (result.auto_project && !activeProject) {
+        setTimeout(() => setActiveProject(result.auto_project), 100)
+      }
+
+      // Reload FULL project file tree from disk (not just AI-generated files)
+      // This shows the complete folder structure (scaffold + generated) in the Code tab
+      if (pid) {
+        aFetch(`/api/projects/${pid}/files/flat`)
+          .then(r => r.ok ? r.json() : null)
+          .then(data => {
+            if (data?.files?.length > 0) {
+              setGeneratedFilesList(data.files)
+            } else if (result.files?.length > 0) {
+              setGeneratedFilesList(result.files)
+            }
+          })
+          .catch(() => {
+            if (result.files?.length > 0) setGeneratedFilesList(result.files)
+          })
+        // Also refresh assembled preview for Vite/React projects
+        aFetch(`/api/projects/${pid}/assembled`)
+          .then(r => r.ok ? r.json() : null)
+          .then(data => { if (data?.html) setCode(data.html) })
+          .catch(() => {})
+      } else if (result.files?.length > 0) {
+        setGeneratedFilesList(result.files)
+      } else {
+        setGeneratedFilesList([{ name: 'index.html', path: '/', content: newCode, language: 'html' }])
+      }
+
+      saveHistory({
+        id:        Math.random().toString(36).slice(2, 10),
+        message:   prompt.slice(0, 60),
+        timestamp: new Date().toISOString(),
+        model:     result.model || 'demo',
+        code:      newCode,
+        tokens:    result.tokens,
+        project_id: pid || null,
+      })
+
+      // Refresh backups list (backend auto-created a backup before generation)
+      if (pid) {
+        aFetch(`/api/projects/${pid}/backups`)
+          .then(r => r.ok ? r.json() : null)
+          .then(data => { if (data?.backups) setProjectBackups(data.backups) })
+          .catch(() => {})
+      }
+    },
+  })
+
+  // Wrap generate to inject projectId and context files automatically
+  const generate = useCallback((...args) => {
+    const p      = args[0]
+    const t      = args[1]
+    const img64  = args[2]
+    const s      = args[3]
+    const aMode  = args[4]
+    const iType  = args[5]
+    const prov   = args[6] || 'anthropic'
+
+    // Pass existing files as context for iterative edits (skip when using image/vision)
+    const ctx = (!img64 && generatedFilesList.length > 0) ? generatedFilesList : null
+
+    return generateRaw(p, t, img64, s, aMode, iType, prov, activeProject?.id || null, ctx)
+  }, [generateRaw, activeProject, generatedFilesList])
+
+  const { pushToGitHub, ghStatus } = useGitHub({ showToast, code })
+
+  // ── Page routing ──
+  const handleStartProject = useCallback(async (promptText) => {
+    // Auth gate: require login to generate (always, even if OAuth not yet configured)
+    if (!isAuthenticated) {
+      setPendingPrompt(promptText)
+      // Persist across OAuth redirect (full page reload)
+      sessionStorage.setItem('kiro-pending-prompt', promptText)
+      setShowLoginModal(true)
+      return
+    }
+
+    setCode('')
+    setFiles({})
+    setGeneratedFilesList([])
+    setMainView('preview')
+    setActivePage('builder')
+
+    // Create a project immediately so chat + files + backup are isolated from the start
+    try {
+      const r = await aFetch('/api/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: promptText.slice(0, 40).trim() || 'New Project', stack: [] }),
+      })
+      if (r.ok) {
+        const project = await r.json()
+        setActiveProject(project)
+        // API responded → backend is definitely online — prevent "hors ligne" race
+        setApiOnline(true)
+      }
+    } catch (e) {
+      console.warn('[App] auto-create project error:', e)
+    }
+
+    // Set prompt AFTER project is created so generate() has the projectId
+    setPendingPrompt(promptText)
+  }, [isAuthenticated, aFetch])
+
+  const handleLoadProject = useCallback((item) => {
+    // If it's a real project from API (has .id), use handleOpenProject
+    if (item?.id && !item?.code) {
+      handleOpenProject(item)
+      return
+    }
+    // Legacy: load from history item with inline code
+    if (item?.code) {
+      setCode(item.code)
+      setFiles(f => ({ ...f, 'index.html': item.code }))
+      setMainView('preview')
+      setActivePage('builder')
+    }
+  }, [handleOpenProject])
+
+  const handleRollback = useCallback((commit) => {
+    setCode(commit.code)
+    setFiles(f => ({ ...f, 'index.html': commit.code }))
+    setMainView('preview')
+    showToast(`Rolled back to "${commit.message}"`, 'success')
+  }, [showToast])
+
+  const handleFileSelect = useCallback((f) => {
+    setActiveFile(f)
+    setCode(files[f] || '')
+  }, [files])
+
+  const handleCodeChange = useCallback((newCode) => {
+    setCode(newCode)
+    setFiles(f => ({ ...f, [activeFile]: newCode }))
+  }, [activeFile])
+
+  const handlePushChanges = useCallback((editedFiles) => {
+    // Find index.html in the edited files and sync it to preview
+    const mainFile = editedFiles.find(f => f.name === 'index.html')
+    if (mainFile) {
+      setCode(mainFile.content)
+      setFiles(f => ({ ...f, 'index.html': mainFile.content }))
+    }
+    setGeneratedFilesList(editedFiles)
+    setMainView('preview')
+    showToast('Changes pushed to preview!', 'success')
+  }, [showToast])
+
+  // ── Keyboard shortcuts ──
+  useEffect(() => {
+    const handler = (e) => {
+      // Ctrl+K → focus chat input
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault()
+        document.querySelector('[data-chat-input]')?.focus()
+      }
+      // Escape → close sidebar on mobile
+      if (e.key === 'Escape') {
+        setSidebarOpen(false)
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [])
+
+  if (authLoading) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#080810', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ width: 32, height: 32, border: '3px solid rgba(124,58,237,0.2)', borderTopColor: '#7c3aed', borderRadius: '50%', animation: 'spin 0.6s linear infinite' }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex flex-col h-full bg-kiro-bg text-kiro-text">
+
+      {/* ── Page routing ── */}
+      {activePage === 'home' ? (
+        <HomePage
+          onStart={handleStartProject}
+          onLoad={handleLoadProject}
+          onOpenProject={handleOpenProject}
+          history={history}
+          projects={projectsList}
+        />
+      ) : (
+        <>
+          <TopBar
+            mainView={mainView}
+            onMainView={setMainView}
+            projectName={activeProject?.name || projectName}
+            onProjectName={setProjectName}
+            apiOnline={apiOnline}
+            onGitHub={pushToGitHub}
+            ghStatus={ghStatus}
+            darkMode={darkMode}
+            onDarkMode={setDarkMode}
+            onMenuOpen={() => setSidebarOpen(true)}
+            isMobile={isMobile}
+            previewDevice={previewDevice}
+            onPreviewDevice={setPreviewDevice}
+            onGoHome={() => setActivePage('home')}
+            hasCode={!!code}
+            onOpenProjectManager={() => setShowProjectManager(true)}
+            activeProject={activeProject}
+          />
+
+          {/* ── Hamburger sidebar ── */}
+          {sidebarOpen && (
+            <div
+              className="fixed inset-0 z-40"
+              onClick={() => setSidebarOpen(false)}
+              style={{ background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(2px)' }}
+            >
+              <div
+                onClick={e => e.stopPropagation()}
+                style={{
+                  position: 'absolute', top: 0, left: 0, bottom: 0,
+                  width: 280, background: 'var(--kbg)',
+                  borderRight: '1px solid var(--kborder)',
+                  boxShadow: '4px 0 24px rgba(0,0,0,0.15)',
+                  display: 'flex', flexDirection: 'column',
+                  animation: 'kiroSlideInLeft 200ms ease',
+                  overflow: 'hidden',
+                }}
+              >
+                {/* Header */}
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '16px 20px', borderBottom: '1px solid var(--kborder)',
+                  flexShrink: 0,
+                }}>
+                  <div style={{
+                    width: 32, height: 32, borderRadius: 10,
+                    background: 'var(--kaccent)', display: 'flex',
+                    alignItems: 'center', justifyContent: 'center',
+                    color: '#fff', fontSize: 16, fontWeight: 700, flexShrink: 0,
+                  }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 2C12 2 9 7 9 10c0 1.5.8 2.5 2 3-.8-2 0-5 1-7 1 2 1.8 5 1 7 1.2-.5 2-1.5 2-3 0-3-3-8-3-8z"/><path d="M6 8c0 0-1 5 1 7.5 1 1.2 2.2 1.5 3.2 1-2-.5-3.5-2.5-2.8-5 .5 2 2 3.8 4 3.8-1-1-2.5-2.5-2-4.5C8.5 8 6 8 6 8z" opacity=".85"/><path d="M18 8c0 0 1 5-1 7.5-1 1.2-2.2 1.5-3.2 1 2-.5 3.5-2.5 2.8-5-.5 2-2 3.8-4 3.8 1-1 2.5-2.5 2-4.5C15.5 8 18 8 18 8z" opacity=".85"/><circle cx="12" cy="17" r="1.2"/><path d="M10 18c-1.5 1.5-3 1.5-3 1.5M14 18c1.5 1.5 3 1.5 3 1.5M12 18.5v3" fill="none" stroke="currentColor" strokeWidth="1" opacity=".6"/>
+                    </svg>
+                  </div>
+                  <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--ktext)', fontFamily: "'Syne', sans-serif" }}>KIRO</span>
+                  <div style={{ flex: 1 }} />
+                  <button
+                    onClick={() => setSidebarOpen(false)}
+                    style={{
+                      width: 28, height: 28, borderRadius: 8,
+                      border: '1px solid var(--kborder)', background: 'var(--kpanel2)',
+                      cursor: 'pointer', display: 'flex', alignItems: 'center',
+                      justifyContent: 'center', color: 'var(--ksubtle)',
+                    }}
+                  >
+                    <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Navigation */}
+                <div style={{ flex: 1, overflowY: 'auto', padding: '8px 10px' }}>
+                  {/* Main nav */}
+                  {[
+                    { label: 'Home', icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>, action: () => { setActivePage('home'); setSidebarOpen(false) } },
+                    { label: 'Search', icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>, action: () => { setActivePage('home'); setSidebarOpen(false) } },
+                    { label: 'Resources', icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>, action: () => { showToast('Resources coming soon!', 'info'); setSidebarOpen(false) } },
+                  ].map(item => (
+                    <button
+                      key={item.label}
+                      onClick={item.action}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 12,
+                        width: '100%', padding: '10px 12px', borderRadius: 10,
+                        border: 'none', background: 'transparent', cursor: 'pointer',
+                        color: 'var(--ktext)', fontSize: 13, fontFamily: 'system-ui',
+                        fontWeight: 500, textAlign: 'left',
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'var(--kpanel2)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <span style={{ color: 'var(--ksubtle)' }}>{item.icon}</span>
+                      {item.label}
+                    </button>
+                  ))}
+
+                  {/* Projects section */}
+                  <div style={{ margin: '16px 0 6px', padding: '0 12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <p style={{ fontSize: 10, fontWeight: 600, color: 'var(--ksubtle)', textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: 'system-ui', margin: 0 }}>Mes projets</p>
+                    <button
+                      onClick={() => { setShowProjectManager(true); setSidebarOpen(false) }}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ksubtle)', fontSize: 14, padding: '0 2px', lineHeight: 1 }}
+                      title="Gérer les projets"
+                    >+</button>
+                  </div>
+                  {projectsList.slice(0, 20).map(p => (
+                    <button
+                      key={p.id}
+                      onClick={() => { handleOpenProject(p); setSidebarOpen(false) }}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 8,
+                        width: '100%', padding: '7px 12px', borderRadius: 8,
+                        border: 'none', cursor: 'pointer',
+                        background: activeProject?.id === p.id ? 'var(--kpanel2)' : 'transparent',
+                        color: activeProject?.id === p.id ? 'var(--ktext)' : 'var(--kmuted)',
+                        fontSize: 12, fontFamily: 'system-ui',
+                        fontWeight: activeProject?.id === p.id ? 600 : 400,
+                        textAlign: 'left', overflow: 'hidden',
+                      }}
+                      onMouseEnter={e => { if (activeProject?.id !== p.id) e.currentTarget.style.background = 'var(--kpanel2)' }}
+                      onMouseLeave={e => { if (activeProject?.id !== p.id) e.currentTarget.style.background = 'transparent' }}
+                    >
+                      <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" style={{ flexShrink: 0, opacity: 0.5 }}>
+                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                      </svg>
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {p.name}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Bottom: Settings */}
+                <div style={{
+                  borderTop: '1px solid var(--kborder)', padding: '10px',
+                  flexShrink: 0,
+                }}>
+                  {/* Settings button */}
+                  <button
+                    onClick={() => { setActivePage('home'); setSidebarOpen(false); setTimeout(() => document.querySelector('[data-settings-tab]')?.click(), 100) }}
+                    style={{
+                      display: 'flex', alignItems: 'center', gap: 10,
+                      width: '100%', padding: '10px 12px', borderRadius: 10,
+                      border: 'none', background: 'transparent', cursor: 'pointer',
+                      color: 'var(--ktext)', fontSize: 13, fontFamily: 'system-ui',
+                      fontWeight: 500, textAlign: 'left',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'var(--kpanel2)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <svg width="16" height="16" fill="none" stroke="var(--ksubtle)" strokeWidth="1.8" viewBox="0 0 24 24">
+                      <circle cx="12" cy="12" r="3"/>
+                      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                    Settings
+                  </button>
+                  {/* Dark mode row */}
+                  <div style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '8px 12px', borderRadius: 10,
+                  }}>
+                    <span style={{ fontSize: 12, color: 'var(--kmuted)', fontFamily: 'system-ui', display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+                      Dark mode
+                    </span>
+                    <button
+                      onClick={() => setDarkMode(d => !d)}
+                      style={{
+                        width: 38, height: 20, borderRadius: 10, border: 'none', cursor: 'pointer',
+                        background: darkMode ? '#E11D48' : '#d1d5db', position: 'relative', transition: 'background 0.2s',
+                      }}
+                    >
+                      <span style={{
+                        position: 'absolute', top: 2, left: darkMode ? 20 : 2,
+                        width: 16, height: 16, borderRadius: '50%', background: '#fff',
+                        transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                      }}/>
+                    </button>
+                  </div>
+                  {/* Version */}
+                  <div style={{ padding: '4px 12px' }}>
+                    <span style={{ fontSize: 10, color: 'var(--ksubtle)', fontFamily: 'system-ui' }}>Kiro Builder v2.0.0</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Project Manager modal */}
+          <ProjectManager
+            isOpen={showProjectManager}
+            onClose={() => setShowProjectManager(false)}
+            onOpen={handleOpenProject}
+            activeProject={activeProject}
+          />
+
+          <div className="flex flex-1 overflow-hidden relative">
+            <ResizableLayout
+              mainView={mainView}
+              code={code}
+              generatedFilesList={generatedFilesList}
+              setGeneratedFilesList={setGeneratedFilesList}
+              onGitPush={pushToGitHub}
+              ghStatus={ghStatus}
+              history={activeProject?.id ? history.filter(h => h.project_id === activeProject.id) : history}
+              onRollback={handleRollback}
+              onGenerate={generate}
+              loading={loading}
+              apiOnline={apiOnline}
+              isOpen={sidebarOpen}
+              onClose={() => setSidebarOpen(false)}
+              onNewProject={() => setShowProjectManager(true)}
+              pendingPrompt={pendingPrompt}
+              onPendingConsumed={() => setPendingPrompt(null)}
+              stack={stack}
+              onMainView={setMainView}
+              previewDevice={previewDevice}
+              onPreviewDevice={setPreviewDevice}
+              showToast={showToast}
+              onPushChanges={handlePushChanges}
+              projectId={activeProject?.id || null}
+              savedSignal={savedSignal}
+              onSaveSignal={handleSaveSignal}
+              projectBackups={projectBackups}
+              onCreateBackup={createBackup}
+              onRestoreBackup={restoreBackup}
+              onDeleteBackup={deleteBackup}
+            />
+          </div>
+
+          <div className="flex-shrink-0">
+            <StatusBar lastStats={lastStats} apiOnline={apiOnline} ghStatus={ghStatus} code={code} />
+          </div>
+        </>
+      )}
+
+      {/* Login modal — shown when unauthenticated user tries to generate */}
+      <LoginModal
+        isOpen={showLoginModal}
+        onClose={() => setShowLoginModal(false)}
+        onSuccess={() => {
+          setShowLoginModal(false)
+          if (pendingPrompt) handleStartProject(pendingPrompt)
+        }}
+      />
+
+      {/* Toast — visible on both pages */}
+      {toast && (
+        <div
+          key={toast.id}
+          className={`fixed ${isMobile ? 'bottom-20' : 'bottom-10'} right-4 px-4 py-2 rounded-lg text-sm shadow-kiro toast-enter z-[200] ${
+            toast.type === 'success' ? 'bg-kiro-green/20 border border-kiro-green/40 text-kiro-green' :
+            toast.type === 'error'   ? 'bg-kiro-red/20 border border-kiro-red/40 text-kiro-red' :
+            'bg-kiro-panel border border-kiro-border2 text-kiro-text'
+          }`}
+        >
+          {toast.msg}
+        </div>
+      )}
+    </div>
+  )
+}

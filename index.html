@@ -1,0 +1,1292 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KIRO BUILDER</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap');
+
+:root {
+  --bg:      #0a0a0f;
+  --panel:   #0f0f1a;
+  --border:  #1e1e2e;
+  --accent:  #7c3aed;
+  --accent2: #06b6d4;
+  --green:   #10b981;
+  --red:     #ef4444;
+  --yellow:  #f59e0b;
+  --text:    #e2e8f0;
+  --muted:   #475569;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Syne', sans-serif;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ══════════════ TOPBAR ══════════════ */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  height: 48px;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+  flex-shrink: 0;
+  gap: 12px;
+}
+.logo {
+  font-size: 16px; font-weight: 800; letter-spacing: 3px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  white-space: nowrap;
+}
+.topbar-center {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 8px; padding: 4px 10px;
+  font-family: 'Space Mono', monospace; font-size: 11px; color: var(--muted);
+}
+.topbar-center input {
+  background: none; border: none; outline: none;
+  color: var(--text); font-family: 'Space Mono', monospace;
+  font-size: 11px; width: 140px;
+}
+.topbar-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+
+.ai-selector {
+  display: flex; gap: 3px;
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 8px; padding: 3px;
+}
+.ai-btn {
+  padding: 3px 10px; border-radius: 5px; border: none; cursor: pointer;
+  font-family: 'Space Mono', monospace; font-size: 10px; font-weight: 700;
+  letter-spacing: 1px; transition: all .2s; background: transparent; color: var(--muted);
+}
+.ai-btn.active-claude { background: var(--accent);  color: white; }
+.ai-btn.active-ollama { background: var(--accent2); color: white; }
+.ai-btn.active-auto   { background: var(--green);   color: white; }
+
+.status-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--green); box-shadow: 0 0 8px var(--green);
+  animation: pulse 2s infinite; flex-shrink: 0;
+}
+.status-dot.offline { background: var(--red); box-shadow: 0 0 8px var(--red); animation: none; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+/* ══════════════ MAIN LAYOUT ══════════════ */
+.main { display: flex; flex: 1; overflow: hidden; }
+
+/* ══════════════ LEFT PANEL ══════════════ */
+.left-panel {
+  width: 300px; flex-shrink: 0; display: flex; flex-direction: column;
+  border-right: 1px solid var(--border); background: var(--panel);
+}
+.left-tabs { display: flex; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.tab {
+  flex: 1; padding: 9px 4px; text-align: center;
+  font-size: 10px; font-weight: 600; letter-spacing: 1px; cursor: pointer;
+  color: var(--muted); border-bottom: 2px solid transparent;
+  transition: all .2s; text-transform: uppercase; white-space: nowrap;
+}
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tab-panel { display: none; flex: 1; flex-direction: column; overflow: hidden; min-height: 0; }
+.tab-panel.active { display: flex; }
+
+/* ── Chat ── */
+.chat-area {
+  flex: 1; overflow-y: auto; padding: 12px;
+  display: flex; flex-direction: column; gap: 10px; min-height: 0;
+}
+.chat-area::-webkit-scrollbar { width: 3px; }
+.chat-area::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+.msg {
+  max-width: 92%; padding: 9px 12px; border-radius: 12px;
+  font-size: 12px; line-height: 1.5; word-break: break-word;
+}
+.msg.user {
+  background: linear-gradient(135deg, var(--accent), #5b21b6);
+  color: white; align-self: flex-end; border-bottom-right-radius: 3px;
+}
+.msg.ai {
+  background: var(--bg); border: 1px solid var(--border);
+  color: var(--text); align-self: flex-start; border-bottom-left-radius: 3px;
+}
+.ai-label {
+  font-size: 9px; font-family: 'Space Mono', monospace; color: var(--muted);
+  margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px;
+}
+.claude-msg .ai-label { color: var(--accent); }
+.ollama-msg .ai-label { color: var(--accent2); }
+
+.generating {
+  display: flex; align-items: center; gap: 8px; padding: 7px 12px;
+  background: var(--bg); border: 1px solid var(--border); border-radius: 10px;
+  align-self: flex-start; font-size: 11px; font-family: 'Space Mono', monospace; color: var(--muted);
+}
+.gen-dots span { display:inline-block; animation: bounce 1.2s infinite; color: var(--accent); }
+.gen-dots span:nth-child(2) { animation-delay:.2s; }
+.gen-dots span:nth-child(3) { animation-delay:.4s; }
+@keyframes bounce { 0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-4px)} }
+
+/* ── Tech bar ── */
+.tech-bar {
+  padding: 6px 10px; border-top: 1px solid var(--border);
+  display: flex; gap: 4px; flex-wrap: wrap; flex-shrink: 0;
+}
+.tech-chip {
+  padding: 2px 8px; border-radius: 20px; font-size: 10px;
+  font-family: 'Space Mono', monospace; cursor: pointer;
+  border: 1px solid var(--border); background: transparent; color: var(--muted); transition: all .2s;
+}
+.tech-chip.active { background: rgba(124,58,237,.15); border-color: var(--accent); color: var(--accent); }
+
+/* ── Input zone ── */
+.input-zone { padding: 10px; border-top: 1px solid var(--border); flex-shrink: 0; }
+.upload-previews { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 6px; }
+.upload-chip {
+  display: flex; align-items: center; gap: 4px;
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 6px; padding: 3px 7px;
+  font-size: 10px; font-family: 'Space Mono', monospace; color: var(--muted);
+}
+.upload-thumb { width: 34px; height: 34px; object-fit: cover; border-radius: 3px; }
+.rm-upload { cursor: pointer; color: var(--red); font-size: 14px; line-height: 1; }
+
+.input-wrapper {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 10px; padding: 8px 10px;
+  display: flex; flex-direction: column; gap: 6px; transition: border-color .2s;
+}
+.input-wrapper:focus-within { border-color: var(--accent); }
+.prompt-input {
+  background: none; border: none; outline: none;
+  color: var(--text); font-family: 'Syne', sans-serif; font-size: 12px;
+  resize: none; min-height: 50px; max-height: 120px; line-height: 1.5;
+}
+.prompt-input::placeholder { color: var(--muted); }
+.input-actions { display: flex; align-items: center; justify-content: space-between; }
+.input-tools { display: flex; gap: 4px; align-items: center; }
+.tool-chip {
+  padding: 2px 8px; border-radius: 20px; border: 1px solid var(--border);
+  background: transparent; color: var(--muted); font-size: 10px; cursor: pointer;
+  font-family: 'Space Mono', monospace; transition: all .2s;
+}
+.tool-chip:hover  { border-color: var(--accent); color: var(--accent); }
+.tool-chip.active { border-color: var(--accent); color: var(--accent); background: rgba(124,58,237,.1); }
+.upload-btn {
+  width: 26px; height: 26px; border-radius: 6px; border: 1px solid var(--border);
+  background: transparent; color: var(--muted); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; font-size: 13px; transition: all .2s;
+}
+.upload-btn:hover { border-color: var(--accent2); color: var(--accent2); }
+.send-btn {
+  width: 30px; height: 30px; border-radius: 8px; border: none;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  color: white; cursor: pointer; display: flex; align-items: center;
+  justify-content: center; font-size: 13px; transition: all .2s;
+}
+.send-btn:hover { transform: scale(1.05); }
+.send-btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+
+/* ── Files tab ── */
+.panel-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 12px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.panel-label { font-size: 10px; font-family: 'Space Mono', monospace; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; }
+.icon-btn {
+  padding: 2px 7px; border: 1px solid var(--border); border-radius: 4px;
+  background: transparent; color: var(--muted); font-size: 10px;
+  font-family: 'Space Mono', monospace; cursor: pointer; transition: all .2s;
+}
+.icon-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+.files-tree { flex: 1; overflow-y: auto; padding: 6px 8px; }
+.files-tree::-webkit-scrollbar { width: 3px; }
+.files-tree::-webkit-scrollbar-thumb { background: var(--border); }
+
+.tree-folder { margin-bottom: 2px; }
+.tree-folder-hd {
+  display: flex; align-items: center; gap: 5px; padding: 4px 6px;
+  border-radius: 5px; cursor: pointer; font-size: 11px;
+  font-family: 'Space Mono', monospace; color: var(--text); transition: background .15s;
+}
+.tree-folder-hd:hover { background: var(--bg); }
+.tree-folder-body { padding-left: 14px; }
+.tree-file {
+  display: flex; align-items: center; gap: 6px; padding: 4px 6px;
+  border-radius: 5px; cursor: pointer; font-size: 11px;
+  font-family: 'Space Mono', monospace; color: var(--muted); transition: all .15s;
+}
+.tree-file:hover  { background: var(--bg); color: var(--text); }
+.tree-file.active { background: rgba(124,58,237,.15); color: var(--accent); }
+
+/* ── History tab ── */
+.history-actions {
+  display: flex; gap: 6px; padding: 8px;
+  border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.gh-btn {
+  flex: 1; padding: 7px; border-radius: 7px; border: 1px solid #333;
+  background: #161b22; color: var(--text); font-size: 10px;
+  font-family: 'Space Mono', monospace; cursor: pointer; transition: all .2s;
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+}
+.gh-btn:hover { border-color: var(--accent); color: var(--accent); }
+.history-list {
+  flex: 1; overflow-y: auto; padding: 8px;
+  display: flex; flex-direction: column; gap: 6px; min-height: 0;
+}
+.history-list::-webkit-scrollbar { width: 3px; }
+.history-list::-webkit-scrollbar-thumb { background: var(--border); }
+
+.commit-card {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: 8px; padding: 9px 11px; transition: border-color .2s;
+}
+.commit-card:hover { border-color: rgba(124,58,237,.4); }
+.commit-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.commit-sha {
+  font-family: 'Space Mono', monospace; font-size: 10px; color: var(--accent2);
+  background: rgba(6,182,212,.1); padding: 1px 5px; border-radius: 3px;
+}
+.commit-ts  { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--muted); }
+.commit-msg { font-size: 11px; color: var(--text); margin-bottom: 6px; line-height: 1.4; }
+.commit-footer { display: flex; align-items: center; gap: 5px; }
+.rollback-btn {
+  padding: 2px 8px; border: 1px solid var(--border); border-radius: 4px;
+  background: transparent; color: var(--muted); font-size: 10px;
+  font-family: 'Space Mono', monospace; cursor: pointer; transition: all .2s;
+}
+.rollback-btn:hover { border-color: var(--yellow); color: var(--yellow); }
+.commit-model { font-size: 9px; font-family: 'Space Mono', monospace; color: var(--muted); background: var(--border); padding: 1px 5px; border-radius: 3px; margin-left: auto; }
+
+.empty-panel { text-align: center; padding: 24px 12px; font-size: 11px; font-family: 'Space Mono', monospace; color: var(--muted); opacity: .6; line-height: 1.8; }
+
+/* ══════════════ CENTER: CODE EDITOR ══════════════ */
+.editor-panel {
+  flex: 1; min-width: 0; display: flex; flex-direction: column;
+  overflow: hidden; border-right: 1px solid var(--border);
+}
+.editor-tabbar {
+  display: flex; align-items: stretch; border-bottom: 1px solid var(--border);
+  background: var(--panel); flex-shrink: 0; overflow-x: auto; min-height: 36px;
+}
+.editor-tabbar::-webkit-scrollbar { height: 2px; }
+.etab {
+  display: flex; align-items: center; gap: 5px; padding: 0 14px;
+  font-size: 11px; font-family: 'Space Mono', monospace; color: var(--muted);
+  cursor: pointer; border-right: 1px solid var(--border);
+  border-bottom: 2px solid transparent; white-space: nowrap;
+  transition: all .15s; flex-shrink: 0; user-select: none;
+}
+.etab:hover  { color: var(--text); background: rgba(255,255,255,.02); }
+.etab.active { color: var(--text); border-bottom-color: var(--accent); background: var(--bg); }
+.etab-close {
+  width: 14px; height: 14px; border-radius: 3px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; opacity: 0; transition: opacity .15s; color: var(--muted); line-height: 1;
+}
+.etab:hover .etab-close  { opacity: 1; }
+.etab-close:hover { background: rgba(255,255,255,.1); color: white; }
+.editor-actions {
+  display: flex; align-items: center; gap: 5px;
+  padding: 0 10px; margin-left: auto; flex-shrink: 0;
+}
+.eact-btn {
+  padding: 3px 9px; border: 1px solid var(--border); border-radius: 5px;
+  background: transparent; color: var(--muted); font-size: 10px;
+  font-family: 'Space Mono', monospace; cursor: pointer; transition: all .2s; white-space: nowrap;
+}
+.eact-btn:hover       { border-color: var(--accent); color: var(--accent); }
+.eact-btn.warn:hover  { border-color: var(--red); color: var(--red); }
+
+.editor-body {
+  flex: 1; display: flex; overflow: hidden;
+  position: relative; background: var(--bg);
+}
+.editor-empty {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 10px;
+  color: var(--muted); pointer-events: none; z-index: 5;
+}
+.editor-empty-icon { font-size: 36px; opacity: .15; }
+.editor-empty-text { font-size: 12px; opacity: .4; font-family: 'Space Mono', monospace; }
+
+/* Line numbers */
+.line-nums {
+  width: 48px; background: var(--bg); border-right: 1px solid var(--border);
+  padding: 16px 0; overflow: hidden; flex-shrink: 0;
+  font-family: 'Space Mono', monospace; font-size: 11px;
+  line-height: 1.6; text-align: right; color: var(--muted); user-select: none;
+  display: none;
+}
+.line-nums span { display: block; padding-right: 8px; opacity: .5; }
+
+/* Code area — overlay technique */
+.code-area { flex: 1; position: relative; overflow: hidden; display: none; }
+
+.code-textarea,
+.code-pre {
+  position: absolute; inset: 0; margin: 0; padding: 16px;
+  font-family: 'Space Mono', monospace !important;
+  font-size: 12px !important; line-height: 1.6 !important;
+  tab-size: 2; white-space: pre; word-wrap: normal; overflow: auto;
+}
+.code-textarea {
+  color: transparent; caret-color: #e2e8f0; background: transparent;
+  z-index: 2; border: none; outline: none; resize: none;
+  -webkit-text-fill-color: transparent;
+}
+.code-pre { background: var(--bg); z-index: 1; pointer-events: none; overflow: hidden; }
+.code-pre code {
+  font-family: 'Space Mono', monospace !important;
+  font-size: 12px !important; line-height: 1.6 !important;
+  background: transparent !important; padding: 0 !important;
+}
+.hljs { background: transparent !important; padding: 0 !important; }
+
+/* ══════════════ RIGHT: PREVIEW ══════════════ */
+.preview-panel {
+  width: 370px; flex-shrink: 0;
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.preview-topbar {
+  display: flex; align-items: center; gap: 6px; padding: 7px 10px;
+  border-bottom: 1px solid var(--border); background: var(--panel); flex-shrink: 0;
+}
+.dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.dot-r { background: #ef4444; } .dot-y { background: #f59e0b; } .dot-g { background: #10b981; }
+.browser-bar {
+  flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 5px;
+  padding: 3px 8px; font-size: 10px; font-family: 'Space Mono', monospace; color: var(--muted);
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.view-tabs { display: flex; gap: 3px; flex-shrink: 0; }
+.vtab {
+  padding: 3px 9px; border-radius: 5px; font-size: 10px;
+  font-family: 'Space Mono', monospace; cursor: pointer;
+  border: 1px solid var(--border); background: transparent; color: var(--muted);
+  transition: all .2s; text-transform: uppercase; letter-spacing: .5px;
+}
+.vtab.active { background: var(--accent); border-color: var(--accent); color: white; }
+
+.preview-content { flex: 1; position: relative; overflow: hidden; background: var(--bg); }
+
+/* Empty state */
+.pv-empty {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 12px;
+  color: var(--muted); background: var(--bg); z-index: 1;
+}
+.pv-empty-icon { font-size: 36px; opacity: .2; }
+.pv-empty h3 { font-size: 14px; font-weight: 800; letter-spacing: 2px; }
+.pv-empty p { font-size: 11px; text-align: center; max-width: 230px; line-height: 1.6; }
+.suggestions { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; max-width: 270px; }
+.suggestion {
+  padding: 4px 10px; border-radius: 20px; border: 1px solid var(--border);
+  font-size: 10px; cursor: pointer; transition: all .2s; color: var(--muted);
+}
+.suggestion:hover { border-color: var(--accent); color: var(--accent); background: rgba(124,58,237,.1); }
+
+/* Web iframe */
+.web-frame { width: 100%; height: 100%; border: none; display: none; background: white; }
+
+/* ─── iPhone Mobile Preview ─── */
+.mobile-view {
+  display: none; align-items: center; justify-content: center;
+  width: 100%; height: 100%; background: var(--bg); overflow: auto; padding: 16px 8px;
+}
+.iphone {
+  /* inner screen = 240px wide (260 - 2×10 padding) */
+  width: 260px; flex-shrink: 0; background: #1c1c1e; border-radius: 44px; padding: 10px;
+  box-shadow:
+    0 0 0 1px #3a3a3c,
+    0 0 0 3px #1c1c1e,
+    0 0 0 4.5px #3a3a3c,
+    0 20px 60px rgba(0,0,0,.85),
+    inset 0 0 0 1px rgba(255,255,255,.05);
+  position: relative;
+}
+/* Power button */
+.iphone::before {
+  content: ''; position: absolute; right: -3px; top: 90px;
+  width: 3px; height: 60px; background: #3a3a3c; border-radius: 2px;
+}
+/* Vol up */
+.iphone::after {
+  content: ''; position: absolute; left: -3px; top: 80px;
+  width: 3px; height: 30px; background: #3a3a3c; border-radius: 2px;
+}
+/* Vol down */
+.iphone-vol {
+  position: absolute; left: -3px; top: 120px;
+  width: 3px; height: 50px; background: #3a3a3c; border-radius: 2px;
+}
+.iphone-screen {
+  background: #000; border-radius: 36px; overflow: hidden;
+  position: relative;
+  /* 812px * 0.64 = 519.7 ≈ 520px */
+  height: 520px;
+}
+/* Dynamic Island */
+.iphone-di {
+  position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+  width: 88px; height: 24px; background: #000; border-radius: 18px; z-index: 10;
+}
+.iphone-iframe-wrap {
+  position: absolute; top: 0; left: 0;
+  width: 240px; height: 520px; overflow: hidden;
+}
+/* scale: 240/375 = 0.64 */
+.iphone-iframe-wrap iframe {
+  width: 375px; height: 812px; border: none;
+  transform-origin: top left; transform: scale(0.64); display: block;
+}
+
+/* Code preview panel */
+.pv-code { display: none; width: 100%; height: 100%; overflow: auto; background: var(--bg); padding: 16px; }
+.pv-code::-webkit-scrollbar { width: 4px; }
+.pv-code::-webkit-scrollbar-thumb { background: var(--border); }
+.pv-code pre { font-family: 'Space Mono', monospace; font-size: 11px; line-height: 1.6; white-space: pre-wrap; word-break: break-all; }
+
+/* ══════════════ STATUS BAR ══════════════ */
+.status-bar {
+  height: 25px; background: var(--panel); border-top: 1px solid var(--border);
+  display: flex; align-items: center; padding: 0 14px; gap: 16px;
+  font-size: 10px; font-family: 'Space Mono', monospace; color: var(--muted);
+  flex-shrink: 0; overflow: hidden;
+}
+.sb-item { display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+.sb-val      { color: var(--text); }
+.sb-val.ok   { color: var(--green); }
+.sb-val.err  { color: var(--red); }
+.sb-val.warn { color: var(--yellow); }
+.sb-sep  { color: var(--border); }
+.sb-right { margin-left: auto; }
+
+/* ══════════════ TOAST ══════════════ */
+.toast {
+  position: fixed; bottom: 38px; right: 16px;
+  background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+  padding: 8px 14px; font-size: 11px; font-family: 'Space Mono', monospace;
+  color: var(--text); z-index: 999; animation: toastIn .25s ease; pointer-events: none;
+}
+.toast.ok  { border-color: var(--green); }
+.toast.err { border-color: var(--red); }
+@keyframes toastIn { from{transform:translateY(10px);opacity:0} to{transform:translateY(0);opacity:1} }
+
+/* ══════════════ GITHUB MODAL ══════════════ */
+.overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,.75); z-index: 600;
+  align-items: center; justify-content: center;
+}
+.overlay.open { display: flex; }
+.modal {
+  background: var(--panel); border: 1px solid var(--border); border-radius: 14px;
+  padding: 22px; width: 380px; display: flex; flex-direction: column; gap: 14px;
+}
+.modal-title { font-size: 14px; font-weight: 700; letter-spacing: 1px; }
+.modal-field { display: flex; flex-direction: column; gap: 5px; }
+.modal-lbl { font-size: 10px; font-family: 'Space Mono', monospace; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+.modal-input {
+  background: var(--bg); border: 1px solid var(--border); border-radius: 7px;
+  padding: 7px 11px; color: var(--text); font-family: 'Space Mono', monospace;
+  font-size: 12px; outline: none; transition: border-color .2s;
+}
+.modal-input:focus { border-color: var(--accent); }
+.modal-btns { display: flex; gap: 8px; justify-content: flex-end; }
+.mbtn {
+  padding: 7px 14px; border-radius: 7px; border: 1px solid var(--border);
+  background: transparent; color: var(--muted); font-family: 'Space Mono', monospace;
+  font-size: 11px; cursor: pointer; transition: all .2s;
+}
+.mbtn:hover { border-color: var(--accent); color: var(--accent); }
+.mbtn.primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); border-color: transparent; color: white; }
+.mbtn.primary:hover { opacity: .9; color: white; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ TOPBAR ═══════════════ -->
+<div class="topbar">
+  <div class="logo">KIRO BUILDER</div>
+  <div class="topbar-center">
+    <span>📁</span>
+    <input type="text" id="projectName" value="mon-projet">
+    <span id="saveStatus" style="font-size:9px;color:var(--green);font-family:'Space Mono',monospace;">● saved</span>
+  </div>
+  <div class="topbar-right">
+    <div class="ai-selector">
+      <button class="ai-btn active-claude" id="btnClaude" onclick="selectAI('claude')">CLAUDE</button>
+      <button class="ai-btn" id="btnOllama" onclick="selectAI('ollama')">OLLAMA</button>
+      <button class="ai-btn" id="btnAuto"   onclick="selectAI('auto')">AUTO</button>
+    </div>
+    <div class="status-dot" id="statusDot"></div>
+  </div>
+</div>
+
+<!-- ═══════════════ MAIN ═══════════════ -->
+<div class="main">
+
+  <!-- ──────────── LEFT PANEL ──────────── -->
+  <div class="left-panel">
+    <div class="left-tabs">
+      <div class="tab active" onclick="setTab(this,'chat')">💬 Chat</div>
+      <div class="tab" onclick="setTab(this,'files')">📁 Files</div>
+      <div class="tab" onclick="setTab(this,'history')">🕐 History</div>
+    </div>
+
+    <!-- CHAT -->
+    <div class="tab-panel active" id="panel-chat">
+      <div class="chat-area" id="chatArea">
+        <div class="msg ai claude-msg">
+          <div class="ai-label">🤖 CLAUDE · kiro-builder</div>
+          Bonjour ! Décris-moi l'app ou le site que tu veux créer. Je génère le code complet en quelques secondes.
+        </div>
+      </div>
+      <div class="tech-bar">
+        <button class="tech-chip active" onclick="toggleTech(this)">React</button>
+        <button class="tech-chip active" onclick="toggleTech(this)">Tailwind</button>
+        <button class="tech-chip" onclick="toggleTech(this)">FastAPI</button>
+        <button class="tech-chip" onclick="toggleTech(this)">PostgreSQL</button>
+        <button class="tech-chip" onclick="toggleTech(this)">Vue</button>
+        <button class="tech-chip" onclick="toggleTech(this)">Mobile</button>
+      </div>
+      <div class="input-zone">
+        <div class="upload-previews" id="uploadPreviews"></div>
+        <div class="input-wrapper">
+          <textarea class="prompt-input" id="promptInput"
+            placeholder="Décris ton app… ex: Dashboard analytics dark mode avec graphiques temps réel et auth utilisateur"
+            onkeydown="handleKey(event)"></textarea>
+          <div class="input-actions">
+            <div class="input-tools">
+              <input type="file" id="fileUpload" accept="image/*,.pdf,.txt,.json,.md"
+                style="display:none" multiple onchange="handleUpload(event)">
+              <button class="upload-btn" onclick="document.getElementById('fileUpload').click()" title="Joindre image/fichier">📎</button>
+              <button class="tool-chip" onclick="toggleTool(this)">🎨 Design</button>
+              <button class="tool-chip" onclick="toggleTool(this)">📱 Mobile</button>
+              <button class="tool-chip" onclick="toggleTool(this)">🔌 API</button>
+            </div>
+            <button class="send-btn" id="sendBtn" onclick="generate()">▶</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FILES -->
+    <div class="tab-panel" id="panel-files">
+      <div class="panel-header">
+        <span class="panel-label">Explorer</span>
+        <button class="icon-btn" onclick="toast('↺ Actualisé','ok')">↺</button>
+      </div>
+      <div class="files-tree" id="filesTree">
+        <div class="empty-panel">Génère du code pour<br>voir les fichiers</div>
+      </div>
+    </div>
+
+    <!-- HISTORY -->
+    <div class="tab-panel" id="panel-history">
+      <div class="history-actions">
+        <button class="gh-btn" onclick="openGHModal()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+          </svg>
+          Push GitHub
+        </button>
+      </div>
+      <div class="history-list" id="historyList">
+        <div class="empty-panel">Aucun commit —<br>génère du code pour démarrer</div>
+      </div>
+    </div>
+  </div><!-- /left-panel -->
+
+  <!-- ──────────── CENTER: CODE EDITOR ──────────── -->
+  <div class="editor-panel">
+    <div class="editor-tabbar" id="editorTabbar">
+      <div class="etab active" data-file="index.html" onclick="switchTab(this)">
+        <span>🌐</span><span>index.html</span>
+        <span class="etab-close" onclick="event.stopPropagation();closeTab(this)">×</span>
+      </div>
+      <div class="editor-actions">
+        <button class="eact-btn" onclick="copyCode()">📋 Copier</button>
+        <button class="eact-btn" onclick="downloadCode()">⬇ Download</button>
+        <button class="eact-btn warn" onclick="newProject()">✨ Nouveau</button>
+      </div>
+    </div>
+    <div class="editor-body">
+      <div class="editor-empty" id="editorEmpty">
+        <div class="editor-empty-icon">⚡</div>
+        <div class="editor-empty-text">Le code apparaîtra ici</div>
+      </div>
+      <div class="line-nums" id="lineNums"></div>
+      <div class="code-area" id="codeArea">
+        <pre class="code-pre"><code class="language-html" id="codeHL"></code></pre>
+        <textarea class="code-textarea" id="codeTX" spellcheck="false"
+          oninput="onEdit()" onscroll="syncScroll(this)"></textarea>
+      </div>
+    </div>
+  </div><!-- /editor-panel -->
+
+  <!-- ──────────── RIGHT: PREVIEW ──────────── -->
+  <div class="preview-panel">
+    <div class="preview-topbar">
+      <div class="dot dot-r"></div>
+      <div class="dot dot-y"></div>
+      <div class="dot dot-g"></div>
+      <div class="browser-bar">🔒 localhost:3000</div>
+      <div class="view-tabs">
+        <button class="vtab active" onclick="setView('web',this)">Web</button>
+        <button class="vtab"        onclick="setView('mobile',this)">📱</button>
+        <button class="vtab"        onclick="setView('code',this)">Code</button>
+      </div>
+    </div>
+    <div class="preview-content" id="previewContent">
+      <!-- Empty state -->
+      <div class="pv-empty" id="pvEmpty">
+        <div class="pv-empty-icon">⚡</div>
+        <h3>KIRO BUILDER</h3>
+        <p>Décris ce que tu veux créer. L'IA génère le code complet.</p>
+        <div class="suggestions">
+          <div class="suggestion" onclick="quick('Landing page SaaS moderne avec pricing et animations CSS')">Landing SaaS</div>
+          <div class="suggestion" onclick="quick('Dashboard analytics dark mode avec Chart.js temps réel')">Dashboard</div>
+          <div class="suggestion" onclick="quick('App todo list avec auth utilisateur et base de données')">Todo + Auth</div>
+          <div class="suggestion" onclick="quick('Portfolio développeur dark mode avec animations CSS')">Portfolio</div>
+          <div class="suggestion" onclick="quick('E-commerce avec panier, filtres et paiement Stripe')">E-commerce</div>
+          <div class="suggestion" onclick="quick('Chat temps réel WebSocket interface dark mode')">Chat live</div>
+        </div>
+      </div>
+      <!-- Web -->
+      <iframe class="web-frame" id="webFrame"></iframe>
+      <!-- Mobile iPhone -->
+      <div class="mobile-view" id="mobileView">
+        <div class="iphone">
+          <div class="iphone-vol"></div>
+          <div class="iphone-screen">
+            <div class="iphone-di"></div>
+            <div class="iphone-iframe-wrap">
+              <iframe id="mobileFrame"></iframe>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Code preview -->
+      <div class="pv-code" id="pvCode">
+        <pre><code class="language-html" id="pvCodeHL"></code></pre>
+      </div>
+    </div>
+  </div><!-- /preview-panel -->
+
+</div><!-- /main -->
+
+<!-- ═══════════════ STATUS BAR ═══════════════ -->
+<div class="status-bar">
+  <div class="sb-item">⚡ <span class="sb-val" id="sbModel">—</span></div>
+  <span class="sb-sep">│</span>
+  <div class="sb-item">🔢 tokens: <span class="sb-val" id="sbTokens">0</span></div>
+  <span class="sb-sep">│</span>
+  <div class="sb-item">💰 coût: <span class="sb-val" id="sbCost">$0.0000</span></div>
+  <span class="sb-sep">│</span>
+  <div class="sb-item" id="sbGH">🐙 <span class="sb-val err">non connecté</span></div>
+  <span class="sb-sep">│</span>
+  <div class="sb-item">🖥 api: <span class="sb-val err" id="sbApi">offline</span></div>
+  <div class="sb-item sb-right">Kiro Builder v2.0 · <span id="sbLines">0</span> lignes</div>
+</div>
+
+<!-- ═══════════════ GITHUB MODAL ═══════════════ -->
+<div class="overlay" id="ghOverlay">
+  <div class="modal">
+    <div class="modal-title">🐙 Push to GitHub</div>
+    <div class="modal-field">
+      <div class="modal-lbl">Repository (user/repo)</div>
+      <input class="modal-input" id="ghRepo" placeholder="monuser/mon-repo">
+    </div>
+    <div class="modal-field">
+      <div class="modal-lbl">GitHub Token</div>
+      <input class="modal-input" id="ghToken" type="password" placeholder="ghp_xxxxxxxxx">
+    </div>
+    <div class="modal-field">
+      <div class="modal-lbl">Message de commit</div>
+      <input class="modal-input" id="ghMsg" value="feat: Kiro Builder update">
+    </div>
+    <div class="modal-btns">
+      <button class="mbtn" onclick="closeGHModal()">Annuler</button>
+      <button class="mbtn primary" onclick="pushGH()">🚀 Push</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = 'http://localhost:8000/api';
+
+let currentAI    = 'claude';
+let currentCode  = '';
+let isGenerating = false;
+let totalTokens  = 0;
+let totalCost    = 0;
+let uploads      = [];
+let projectFiles = {};
+let activeFile   = 'index.html';
+let gitHistory   = JSON.parse(localStorage.getItem('kiro_history') || '[]');
+
+/* ══ API HEALTH ══ */
+async function checkAPI() {
+  try {
+    const r = await fetch(`${API}/health`, { signal: AbortSignal.timeout(2000) });
+    const ok = r.ok;
+    document.getElementById('sbApi').textContent  = ok ? 'online' : 'offline';
+    document.getElementById('sbApi').className    = 'sb-val ' + (ok ? 'ok' : 'err');
+    document.getElementById('statusDot').className = 'status-dot' + (ok ? '' : ' offline');
+    return ok;
+  } catch {
+    document.getElementById('sbApi').textContent  = 'offline';
+    document.getElementById('sbApi').className    = 'sb-val err';
+    document.getElementById('statusDot').className = 'status-dot offline';
+    return false;
+  }
+}
+checkAPI();
+setInterval(checkAPI, 6000);
+
+/* ══ AI SELECTOR ══ */
+function selectAI(ai) {
+  currentAI = ai;
+  document.getElementById('btnClaude').className = 'ai-btn' + (ai === 'claude' ? ' active-claude' : '');
+  document.getElementById('btnOllama').className = 'ai-btn' + (ai === 'ollama' ? ' active-ollama' : '');
+  document.getElementById('btnAuto'  ).className = 'ai-btn' + (ai === 'auto'   ? ' active-auto'   : '');
+}
+
+/* ══ LEFT TABS ══ */
+function setTab(el, id) {
+  document.querySelectorAll('.left-tabs .tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('panel-' + id).classList.add('active');
+}
+
+/* ══ PREVIEW VIEW MODE ══ */
+function setView(mode, el) {
+  document.querySelectorAll('.vtab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('webFrame').style.display    = 'none';
+  document.getElementById('mobileView').style.display  = 'none';
+  document.getElementById('pvCode').style.display      = 'none';
+  document.getElementById('previewContent').style.background = mode === 'web' ? '#f0f0f0' : 'var(--bg)';
+  if (mode === 'web') {
+    document.getElementById('webFrame').style.display = 'block';
+  } else if (mode === 'mobile') {
+    document.getElementById('mobileView').style.display = 'flex';
+  } else {
+    const el2 = document.getElementById('pvCodeHL');
+    if (currentCode) { el2.textContent = currentCode; hljs.highlightElement(el2); }
+    document.getElementById('pvCode').style.display = 'block';
+  }
+}
+
+/* ══ TOGGLES ══ */
+function toggleTech(el) { el.classList.toggle('active'); }
+function toggleTool(el)  { el.classList.toggle('active'); }
+function quick(text) {
+  document.getElementById('promptInput').value = text;
+  setTab(document.querySelector('.left-tabs .tab'), 'chat');
+  document.getElementById('promptInput').focus();
+}
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); generate(); }
+}
+
+/* ══ MESSAGES ══ */
+function addMsg(text, role, ai) {
+  const area = document.getElementById('chatArea');
+  const div  = document.createElement('div');
+  div.className = `msg ${role}` + (ai ? ` ${ai}-msg` : '');
+  if (role === 'ai') {
+    const lbl = document.createElement('div');
+    lbl.className = 'ai-label';
+    lbl.textContent = (ai === 'claude' ? '🤖 CLAUDE' : ai === 'ollama' ? '🦙 OLLAMA' : '🤖 AUTO') + ' · kiro-builder';
+    div.appendChild(lbl);
+  }
+  const span = document.createElement('span');
+  span.textContent = text;
+  div.appendChild(span);
+  area.appendChild(div);
+  area.scrollTop = area.scrollHeight;
+  return div;
+}
+function addGenerating() {
+  const area = document.getElementById('chatArea');
+  const div  = document.createElement('div');
+  div.className = 'generating';
+  div.innerHTML  = `<span style="color:var(--accent)">▶</span> Génération en cours&nbsp;<span class="gen-dots"><span>.</span><span>.</span><span>.</span></span>`;
+  area.appendChild(div);
+  area.scrollTop = area.scrollHeight;
+  return div;
+}
+function getTechs() {
+  return Array.from(document.querySelectorAll('.tech-chip.active')).map(c => c.textContent.trim());
+}
+
+/* ══ FILE UPLOAD ══ */
+function handleUpload(e) {
+  Array.from(e.target.files).forEach(file => {
+    const reader = new FileReader();
+    reader.onload = ev => {
+      uploads.push({
+        name: file.name, type: file.type,
+        isImage: file.type.startsWith('image/'),
+        b64: ev.target.result.split(',')[1],
+        dataUrl: ev.target.result
+      });
+      renderUploads();
+    };
+    reader.readAsDataURL(file);
+  });
+  e.target.value = '';
+}
+function renderUploads() {
+  document.getElementById('uploadPreviews').innerHTML = uploads.map((f, i) => `
+    <div class="upload-chip">
+      ${f.isImage ? `<img src="${f.dataUrl}" class="upload-thumb">` : '📄'}
+      <span style="max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px">${f.name}</span>
+      <span class="rm-upload" onclick="removeUpload(${i})">×</span>
+    </div>`).join('');
+}
+function removeUpload(i) { uploads.splice(i, 1); renderUploads(); }
+
+/* ══ GENERATE ══ */
+async function generate() {
+  const input  = document.getElementById('promptInput');
+  const prompt = input.value.trim();
+  if (!prompt || isGenerating) return;
+
+  isGenerating = true;
+  document.getElementById('sendBtn').disabled = true;
+
+  const techs = getTechs();
+  addMsg(prompt, 'user');
+  input.value = '';
+
+  const genEl  = addGenerating();
+  const online = await checkAPI();
+
+  try {
+    let code, model, tokens = 0;
+
+    if (online) {
+      const imgB64 = uploads.find(f => f.isImage)?.b64 || null;
+      const res = await fetch(`${API}/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt, techs, mode: currentAI, image_base64: imgB64 })
+      });
+      if (!res.ok) throw new Error('API ' + res.status);
+      const data = await res.json();
+      code   = data.code;
+      model  = data.model;
+      tokens = data.tokens || 0;
+    } else {
+      throw new Error('offline');
+    }
+
+    genEl.remove();
+    uploads = []; renderUploads();
+    currentCode = code;
+    projectFiles['index.html'] = code;
+    activeFile = 'index.html';
+
+    renderPreview(code);
+    loadInEditor(code, 'index.html');
+    buildFileTree(prompt, techs);
+    pushHistory(prompt, model || currentAI, code);
+
+    totalTokens += tokens;
+    totalCost   += tokens * 0.000003;
+    updateStatus(model || currentAI, totalTokens, totalCost);
+
+    addMsg('✅ Code généré ! Voir l\'éditeur au centre et la preview. Modifie le code ou dis-moi ce que tu veux changer.', 'ai', currentAI);
+
+  } catch {
+    genEl.remove();
+    const demo = demoHTML(prompt, techs);
+    currentCode = demo;
+    projectFiles['index.html'] = demo;
+    renderPreview(demo);
+    loadInEditor(demo, 'index.html');
+    buildFileTree(prompt, techs);
+    pushHistory(prompt, 'demo', demo);
+    addMsg('⚡ Mode démo — backend offline. Lance start.bat pour la génération IA complète.', 'ai', currentAI);
+  }
+
+  isGenerating = false;
+  document.getElementById('sendBtn').disabled = false;
+}
+
+/* ══ RENDER PREVIEW ══ */
+function renderPreview(code) {
+  document.getElementById('pvEmpty').style.display   = 'none';
+  document.getElementById('webFrame').style.display  = 'block';
+  document.getElementById('webFrame').srcdoc          = code;
+  document.getElementById('mobileFrame').srcdoc       = code;
+  document.getElementById('previewContent').style.background = '#f0f0f0';
+  // Reset to web tab
+  document.querySelectorAll('.vtab').forEach((t, i) => t.classList.toggle('active', i === 0));
+  document.getElementById('mobileView').style.display = 'none';
+  document.getElementById('pvCode').style.display     = 'none';
+}
+
+/* ══ CODE EDITOR ══ */
+function loadInEditor(code, filename) {
+  activeFile = filename;
+  document.getElementById('editorEmpty').style.display = 'none';
+  document.getElementById('lineNums').style.display    = 'block';
+  document.getElementById('codeArea').style.display    = 'block';
+
+  const tx = document.getElementById('codeTX');
+  const hl = document.getElementById('codeHL');
+  tx.value       = code;
+  hl.textContent = code;
+  hl.className   = `language-${langOf(filename)}`;
+  hljs.highlightElement(hl);
+  updateLineNums(code);
+  document.getElementById('sbLines').textContent = code.split('\n').length;
+
+  // Sync active tab
+  document.querySelectorAll('.etab[data-file]').forEach(t =>
+    t.classList.toggle('active', t.dataset.file === filename)
+  );
+}
+
+function langOf(name) {
+  if (/\.(jsx?|tsx?)$/.test(name)) return 'javascript';
+  if (/\.py$/.test(name))          return 'python';
+  if (/\.css$/.test(name))         return 'css';
+  if (/\.json$/.test(name))        return 'json';
+  if (/\.md$/.test(name))          return 'markdown';
+  if (/\.sql$/.test(name))         return 'sql';
+  return 'html';
+}
+
+function updateLineNums(code) {
+  document.getElementById('lineNums').innerHTML =
+    code.split('\n').map((_, i) => `<span>${i + 1}</span>`).join('');
+}
+
+function onEdit() {
+  const code = document.getElementById('codeTX').value;
+  currentCode = code;
+  if (activeFile) projectFiles[activeFile] = code;
+
+  const hl = document.getElementById('codeHL');
+  hl.textContent = code;
+  hl.className   = `language-${langOf(activeFile)}`;
+  hljs.highlightElement(hl);
+  updateLineNums(code);
+  document.getElementById('sbLines').textContent = code.split('\n').length;
+
+  document.getElementById('saveStatus').textContent = '● unsaved';
+  document.getElementById('saveStatus').style.color = 'var(--yellow)';
+
+  clearTimeout(window._pvTimer);
+  window._pvTimer = setTimeout(() => {
+    document.getElementById('webFrame').srcdoc    = code;
+    document.getElementById('mobileFrame').srcdoc = code;
+    document.getElementById('saveStatus').textContent = '● saved';
+    document.getElementById('saveStatus').style.color = 'var(--green)';
+  }, 800);
+}
+
+function syncScroll(tx) {
+  // Sync highlighted pre
+  const pre = document.getElementById('codeHL').parentElement;
+  pre.scrollTop  = tx.scrollTop;
+  pre.scrollLeft = tx.scrollLeft;
+  // Sync line numbers
+  const ln = document.getElementById('lineNums');
+  ln.scrollTop = tx.scrollTop;
+}
+
+/* ══ EDITOR TABS ══ */
+function switchTab(tab) {
+  document.querySelectorAll('.etab[data-file]').forEach(t => t.classList.remove('active'));
+  tab.classList.add('active');
+  activeFile = tab.dataset.file;
+  const code = projectFiles[activeFile] || filePlaceholder(activeFile);
+  projectFiles[activeFile] = code;
+  loadInEditor(code, activeFile);
+}
+function closeTab(closeBtn) {
+  const tab  = closeBtn.closest('.etab');
+  const file = tab.dataset.file;
+  const tabs = document.querySelectorAll('.etab[data-file]');
+  if (tabs.length <= 1) return; // keep at least one
+  tab.remove();
+  if (activeFile === file) {
+    const next = document.querySelector('.etab[data-file]');
+    if (next) { next.classList.add('active'); switchTab(next); }
+  }
+}
+function openFileInEditor(filename) {
+  let tab = document.querySelector(`.etab[data-file="${filename}"]`);
+  if (!tab) {
+    tab = document.createElement('div');
+    tab.className    = 'etab';
+    tab.dataset.file = filename;
+    tab.innerHTML    = `<span>${fileIcon(filename)}</span><span>${filename}</span><span class="etab-close" onclick="event.stopPropagation();closeTab(this)">×</span>`;
+    tab.onclick      = () => switchTab(tab);
+    document.getElementById('editorTabbar').insertBefore(tab, document.querySelector('.editor-actions'));
+  }
+  switchTab(tab);
+  document.querySelectorAll('.tree-file').forEach(f => f.classList.toggle('active', f.dataset.file === filename));
+}
+
+function fileIcon(name) {
+  if (/\.html?$/.test(name))       return '🌐';
+  if (/\.(jsx?|tsx?)$/.test(name)) return '⚛️';
+  if (/\.py$/.test(name))          return '🐍';
+  if (/\.json$/.test(name))        return '📦';
+  if (/\.sql$/.test(name))         return '🗄️';
+  if (/\.md$/.test(name))          return '📖';
+  if (/^\.env/.test(name))         return '🔒';
+  if (/\.css$/.test(name))         return '🎨';
+  return '📄';
+}
+
+function filePlaceholder(name) {
+  const proj = document.getElementById('projectName').value || 'mon-projet';
+  if (name === 'package.json')     return JSON.stringify({name:proj,version:'1.0.0',dependencies:{react:'^18.0.0','react-dom':'^18.0.0'}},null,2);
+  if (name === 'requirements.txt') return 'fastapi==0.104.1\nuvicorn==0.24.0\nhttpx==0.25.0\npython-dotenv==1.0.0\nanthropic==0.25.0';
+  if (name === '.env')             return '# Configuration Kiro Builder\nANTHROPIC_API_KEY=sk-ant-xxx\nOLLAMA_URL=http://localhost:11434\nOLLAMA_MODEL=mistral';
+  if (name === 'README.md')        return `# ${proj}\n\nGénéré avec **Kiro Builder** 🚀\n\n## Démarrage\n\n\`\`\`bash\nstart.bat\n\`\`\``;
+  if (name === 'App.jsx')          return 'import React from "react";\n\nexport default function App() {\n  return <div className="app">Hello Kiro!</div>;\n}';
+  if (name === 'main.py')          return '# FastAPI Backend\nfrom fastapi import FastAPI\n\napp = FastAPI()\n\n@app.get("/")\ndef root():\n    return {"status": "ok"}';
+  return `// ${name}\n// Généré par Kiro Builder`;
+}
+
+/* ══ FILE TREE ══ */
+function buildFileTree(prompt, techs) {
+  const proj       = (document.getElementById('projectName').value || 'mon-projet').toLowerCase().replace(/\s+/g,'-');
+  const hasBackend = techs.some(t => ['FastAPI','PHP','PostgreSQL'].includes(t));
+  const hasReact   = techs.includes('React');
+  const hasPG      = techs.includes('PostgreSQL');
+
+  const row = (name, indent) => `
+    <div class="tree-file${name==='index.html'?' active':''}" data-file="${name}"
+      onclick="openFileInEditor('${name}')" style="${indent?'padding-left:20px':''}">
+      <span>${fileIcon(name)}</span><span>${name}</span>
+    </div>`;
+
+  let html = `
+    <div class="tree-folder">
+      <div class="tree-folder-hd" onclick="toggleFolder(this)">
+        <span>▼</span><span>📁</span>
+        <span>${proj}</span>
+      </div>
+      <div class="tree-folder-body">
+        ${row('index.html')}
+        ${hasReact ? row('App.jsx') + row('package.json') : ''}
+        ${row('.env')}
+        ${row('README.md')}
+        ${hasBackend ? `
+        <div class="tree-folder" style="margin-top:4px">
+          <div class="tree-folder-hd" onclick="toggleFolder(this)">
+            <span>▼</span><span>📁</span><span>backend</span>
+          </div>
+          <div class="tree-folder-body">
+            ${row('main.py')}
+            ${row('requirements.txt')}
+            ${hasPG ? row('schema.sql') : ''}
+          </div>
+        </div>` : ''}
+      </div>
+    </div>`;
+
+  document.getElementById('filesTree').innerHTML = html;
+}
+
+function toggleFolder(hd) {
+  const body  = hd.nextElementSibling;
+  const arrow = hd.querySelector('span:first-child');
+  const open  = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'block';
+  arrow.textContent  = open ? '▶' : '▼';
+}
+
+/* ══ HISTORY ══ */
+function pushHistory(prompt, model, code) {
+  const commit = {
+    id:        Math.random().toString(36).substr(2, 8),
+    message:   prompt.substring(0, 60),
+    timestamp: new Date().toISOString(),
+    model,
+    code
+  };
+  gitHistory.unshift(commit);
+  gitHistory = gitHistory.slice(0, 30);
+  localStorage.setItem('kiro_history', JSON.stringify(gitHistory));
+  renderHistory();
+}
+
+function renderHistory() {
+  if (!gitHistory.length) return;
+  document.getElementById('historyList').innerHTML = gitHistory.map(c => `
+    <div class="commit-card">
+      <div class="commit-top">
+        <span class="commit-sha">${c.id}</span>
+        <span class="commit-ts">${relTime(c.timestamp)}</span>
+      </div>
+      <div class="commit-msg">${escHtml(c.message)}</div>
+      <div class="commit-footer">
+        <button class="rollback-btn" onclick="doRollback('${c.id}')">↺ Rollback</button>
+        <span class="commit-model">${c.model}</span>
+      </div>
+    </div>`).join('');
+}
+
+function relTime(iso) {
+  const s = (new Date() - new Date(iso)) / 1000;
+  if (s < 60)    return 'À l\'instant';
+  if (s < 3600)  return `${Math.floor(s/60)}m`;
+  if (s < 86400) return `${Math.floor(s/3600)}h`;
+  return new Date(iso).toLocaleDateString('fr');
+}
+
+async function doRollback(id) {
+  const commit = gitHistory.find(c => c.id === id);
+  if (!commit?.code) { toast('⚠ Code non sauvegardé pour ce commit', 'err'); return; }
+  // Try backend first, fallback to local
+  try {
+    await fetch(`${API}/rollback`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ commit_id: id })
+    });
+  } catch { /* offline — use local code */ }
+  currentCode = commit.code;
+  projectFiles['index.html'] = commit.code;
+  renderPreview(commit.code);
+  loadInEditor(commit.code, 'index.html');
+  toast(`↺ Rollback → commit ${id}`, 'ok');
+}
+
+/* ══ GITHUB ══ */
+function openGHModal()  { document.getElementById('ghOverlay').classList.add('open');    }
+function closeGHModal() { document.getElementById('ghOverlay').classList.remove('open'); }
+
+async function pushGH() {
+  const repo  = document.getElementById('ghRepo').value.trim();
+  const token = document.getElementById('ghToken').value.trim();
+  const msg   = document.getElementById('ghMsg').value.trim();
+  if (!repo || !token) { toast('⚠ Remplis repo et token', 'err'); return; }
+  try {
+    const r = await fetch(`${API}/github/push`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ repo, token, message: msg })
+    });
+    if (!r.ok) throw new Error((await r.json()).detail || r.status);
+    closeGHModal();
+    document.getElementById('sbGH').innerHTML = `🐙 <span class="sb-val ok">✅ ${repo}</span>`;
+    toast(`🚀 Poussé sur ${repo} !`, 'ok');
+  } catch (e) {
+    toast('⚠ Push échoué — ' + e.message, 'err');
+  }
+}
+
+/* ══ STATUS BAR ══ */
+function updateStatus(model, tokens, cost) {
+  document.getElementById('sbModel' ).textContent = model;
+  document.getElementById('sbTokens').textContent = tokens.toLocaleString();
+  document.getElementById('sbCost'  ).textContent = '$' + cost.toFixed(4);
+}
+
+/* ══ ACTIONS ══ */
+function downloadCode() {
+  if (!currentCode) return;
+  const a   = document.createElement('a');
+  a.href    = URL.createObjectURL(new Blob([currentCode], { type: 'text/html' }));
+  a.download = (document.getElementById('projectName').value || 'kiro-project') + '.html';
+  a.click();
+  toast('⬇ Téléchargé !', 'ok');
+}
+function copyCode() {
+  if (!currentCode) return;
+  navigator.clipboard.writeText(currentCode);
+  toast('📋 Code copié !', 'ok');
+}
+function newProject() {
+  currentCode = ''; projectFiles = {}; uploads = []; totalTokens = 0; totalCost = 0;
+  document.getElementById('chatArea').innerHTML =
+    `<div class="msg ai claude-msg"><div class="ai-label">🤖 CLAUDE · kiro-builder</div><span>Nouveau projet ! Décris ce que tu veux créer.</span></div>`;
+  document.getElementById('pvEmpty').style.display        = 'flex';
+  document.getElementById('webFrame').style.display       = 'none';
+  document.getElementById('mobileView').style.display     = 'none';
+  document.getElementById('pvCode').style.display         = 'none';
+  document.getElementById('previewContent').style.background = 'var(--bg)';
+  document.getElementById('editorEmpty').style.display    = 'flex';
+  document.getElementById('lineNums').style.display       = 'none';
+  document.getElementById('codeArea').style.display       = 'none';
+  document.getElementById('filesTree').innerHTML =
+    '<div class="empty-panel">Génère du code pour<br>voir les fichiers</div>';
+  document.getElementById('historyList').innerHTML =
+    '<div class="empty-panel">Aucun commit</div>';
+  document.getElementById('projectName').value = 'mon-projet';
+  updateStatus('—', 0, 0);
+  renderUploads();
+}
+
+/* ══ TOAST ══ */
+function toast(msg, type = 'ok') {
+  const t = document.createElement('div');
+  t.className   = `toast ${type}`;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+/* ══ HELPERS ══ */
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* ══ DEMO HTML (backend offline) ══ */
+function demoHTML(prompt, techs) {
+  const name = escHtml(prompt.substring(0, 30));
+  return `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#0a0a0f;color:#e2e8f0;font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;flex-direction:column;gap:20px;padding:20px}
+.card{background:#0f0f1a;border:1px solid #1e1e2e;border-radius:16px;padding:40px;max-width:480px;width:100%;text-align:center}
+h1{font-size:22px;font-weight:800;background:linear-gradient(135deg,#7c3aed,#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:12px}
+p{color:#475569;line-height:1.6;margin-bottom:20px;font-size:13px}
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;background:rgba(124,58,237,.2);border:1px solid #7c3aed;color:#a78bfa;font-size:11px;margin:3px}
+.btn{padding:10px 20px;border-radius:10px;border:none;background:linear-gradient(135deg,#7c3aed,#06b6d4);color:white;cursor:pointer;font-size:13px;font-weight:600;margin-top:8px}
+.note{background:#0f0f1a;border:1px solid #1e1e2e;border-radius:10px;padding:12px 20px;font-size:11px;color:#475569;font-family:monospace;max-width:480px;width:100%;text-align:center}
+</style></head><body>
+<div class="card">
+  <h1>⚡ ${name}</h1>
+  <p>Lance <code>start.bat</code> pour activer le backend IA et générer ce projet complet.</p>
+  <div>${techs.map(t => `<span class="badge">${t}</span>`).join('')}</div>
+  <button class="btn" onclick="this.textContent='✓ Compris !'">Démarrer →</button>
+</div>
+<div class="note">💡 Backend: <b>http://localhost:8000</b> · Docs: <b>http://localhost:8000/docs</b></div>
+</body></html>`;
+}
+
+/* ══ INIT ══ */
+renderHistory();
+</script>
+</body>
+</html>

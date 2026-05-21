@@ -1,0 +1,8 @@
+projects/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.env
+*.log
+generated_projects/

@@ -1,0 +1,409 @@
+<mxfile host="app.diagrams.net" modified="2026-04-01T00:00:00.000Z" agent="KiroBuilder" version="24.0.0" type="device">
+  <diagram id="kiro-arch" name="KiroBuilder Architecture">
+    <mxGraphModel dx="1800" dy="1000" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1900" pageHeight="1200" math="0" shadow="1">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ═══════════════════════════════════════ -->
+        <!-- TITLE -->
+        <!-- ═══════════════════════════════════════ -->
+        <mxCell id="title" value="KiroBuilder — Architecture Complète" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=22;fontStyle=1;fontColor=#1e293b;" vertex="1" parent="1">
+          <mxGeometry x="550" y="20" width="800" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="React 19 + Vite 7 (port 3000)  ·  FastAPI + Uvicorn (port 8000)  ·  Claude Sonnet 4.6" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontColor=#64748b;" vertex="1" parent="1">
+          <mxGeometry x="550" y="55" width="800" height="25" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════ -->
+        <!-- ZONE: BROWSER / UTILISATEUR -->
+        <!-- ═══════════════════════════════════════ -->
+        <mxCell id="zone-browser" value="🌐  BROWSER — Utilisateur" style="swimlane;startSize=30;fillColor=#eff6ff;strokeColor=#3b82f6;fontStyle=1;fontSize=13;fontColor=#1d4ed8;rounded=1;arcSize=3;" vertex="1" parent="1">
+          <mxGeometry x="30" y="100" width="1840" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="browser-vite" value="Vite Dev Server&#xa;localhost:3000&#xa;React 19.2 + HMR" style="rounded=1;fillColor=#dbeafe;strokeColor=#3b82f6;fontSize=11;fontStyle=1;" vertex="1" parent="zone-browser">
+          <mxGeometry x="20" y="40" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="browser-proxy" value="Vite Proxy&#xa;/api/* → :8000" style="rounded=1;fillColor=#dbeafe;strokeColor=#3b82f6;fontSize=11;" vertex="1" parent="zone-browser">
+          <mxGeometry x="210" y="40" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="browser-tailwind" value="Tailwind CSS 3.4&#xa;kiro- prefix&#xa;Dark/Light mode" style="rounded=1;fillColor=#dbeafe;strokeColor=#3b82f6;fontSize=11;" vertex="1" parent="zone-browser">
+          <mxGeometry x="380" y="40" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="browser-fonts" value="Google Fonts CDN&#xa;Syne + JetBrains Mono&#xa;Dynamic font loading" style="rounded=1;fillColor=#dbeafe;strokeColor=#3b82f6;fontSize=11;" vertex="1" parent="zone-browser">
+          <mxGeometry x="550" y="40" width="155" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="browser-hljs" value="highlight.js 11.10&#xa;CDN (atom-one-dark)&#xa;window.hljs global" style="rounded=1;fillColor=#dbeafe;strokeColor=#3b82f6;fontSize=11;" vertex="1" parent="zone-browser">
+          <mxGeometry x="735" y="40" width="145" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="browser-babel" value="Babel Standalone&#xa;JSX → JS runtime&#xa;(assembled preview)" style="rounded=1;fillColor=#dbeafe;strokeColor=#3b82f6;fontSize=11;" vertex="1" parent="zone-browser">
+          <mxGeometry x="910" y="40" width="145" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════ -->
+        <!-- ZONE: FRONTEND REACT -->
+        <!-- ═══════════════════════════════════════ -->
+        <mxCell id="zone-frontend" value="⚛️  FRONTEND — React (frontend/src/)" style="swimlane;startSize=30;fillColor=#f0fdf4;strokeColor=#22c55e;fontStyle=1;fontSize=13;fontColor=#15803d;rounded=1;arcSize=2;" vertex="1" parent="1">
+          <mxGeometry x="30" y="250" width="1840" height="580" as="geometry" />
+        </mxCell>
+
+        <!-- App.jsx -->
+        <mxCell id="app-jsx" value="&lt;b&gt;App.jsx&lt;/b&gt;&#xa;Root — State Global&#xa;─────────────────&#xa;• activeProject&#xa;• code (preview HTML)&#xa;• generatedFiles[]&#xa;• view: home|builder&#xa;• chatMessages[]&#xa;• savedSignal&#xa;• theme dark/light&#xa;─────────────────&#xa;handleOpenProject()&#xa;handleSaveSignal()&#xa;onSuccess(result)" style="rounded=1;fillColor=#bbf7d0;strokeColor=#16a34a;fontSize=11;align=left;spacingLeft=8;fontStyle=0;" vertex="1" parent="zone-frontend">
+          <mxGeometry x="20" y="40" width="180" height="200" as="geometry" />
+        </mxCell>
+
+        <!-- main.jsx -->
+        <mxCell id="main-jsx" value="main.jsx&#xa;ReactDOM.render&#xa;StrictMode" style="rounded=1;fillColor=#dcfce7;strokeColor=#16a34a;fontSize=11;" vertex="1" parent="zone-frontend">
+          <mxGeometry x="20" y="260" width="110" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Pages -->
+        <mxCell id="zone-pages" value="📄 Pages" style="swimlane;startSize=25;fillColor=#f0fdf4;strokeColor=#4ade80;fontSize=11;rounded=1;" vertex="1" parent="zone-frontend">
+          <mxGeometry x="225" y="40" width="200" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="homepage" value="HomePage.jsx&#xa;Hero gradient&#xa;Suggestion chips&#xa;Projects sidebar&#xa;Templates grid&#xa;onOpenProject()" style="rounded=1;fillColor=#dcfce7;strokeColor=#4ade80;fontSize=10;align=left;spacingLeft=6;" vertex="1" parent="zone-pages">
+          <mxGeometry x="10" y="35" width="175" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- Layout -->
+        <mxCell id="zone-layout" value="🏗️ Layout" style="swimlane;startSize=25;fillColor=#f0fdf4;strokeColor=#4ade80;fontSize=11;rounded=1;" vertex="1" parent="zone-frontend">
+          <mxGeometry x="225" y="210" width="200" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="resizable" value="ResizableLayout.jsx&#xa;Desktop: 3 panels&#xa;Mobile: tabs&#xa;TopBar + MainView&#xa;+ StatusBar" style="rounded=1;fillColor=#dcfce7;strokeColor=#4ade80;fontSize=10;align=left;spacingLeft=6;" vertex="1" parent="zone-layout">
+          <mxGeometry x="10" y="35" width="175" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- TopBar -->
+        <mxCell id="topbar" value="TopBar.jsx&#xa;Logo · ProjectName&#xa;Tabs: Preview/Code&#xa;/Cloud/History&#xa;Branch badge ⎇ main&#xa;API status dot&#xa;Theme toggle" style="rounded=1;fillColor=#dcfce7;strokeColor=#16a34a;fontSize=10;align=left;spacingLeft=6;" vertex="1" parent="zone-frontend">
+          <mxGeometry x="450" y="40" width="155" height="110" as="geometry" />
+        </mxCell>
+
+        <!-- StatusBar -->
+        <mxCell id="statusbar" value="StatusBar.jsx&#xa;Model · Tokens · Cost&#xa;GitHub status&#xa;Lines / File size" style="rounded=1;fillColor=#dcfce7;strokeColor=#16a34a;fontSize=10;align=left;spacingLeft=6;" vertex="1" parent="zone-frontend">
+          <mxGeometry x="450" y="170" width="155" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- ChatSidebar -->
+        <mxCell id="chat" value="&lt;b&gt;ChatSidebar.jsx&lt;/b&gt;&#xa;────────────────&#xa;Messages list&#xa;Design System card&#xa;Greeting detection&#xa;Stack chips (HTML/&#xa;React/Vue/Svelte)&#xa;Image upload&#xa;Textarea + Send&#xa;useGenerate() hook&#xa;Chat save/load API&#xa;Suggestions chips&#xa;isStreaming state" style="rounded=1;fillColor=#bbf7d0;strokeColor=#16a34a;fontSize=10;align=left;spacingLeft=6;" vertex="1" parent="zone-frontend">
+          <mxGeometry x="630" y="40" width="165" height="195" as="geometry" />
+        </mxCell>
+
+        <!-- PreviewPanel -->
+        <mxCell id="preview" value="PreviewPanel.jsx&#xa;──────────────&#xa;Tabs: WEB/MOBILE&#xa;/RAW&#xa;iframe sandbox&#xa;iPhone 14 bezel&#xa;(mobile mode)&#xa;Save signal →&#xa;assembled HTML" style="rounded=1;fillColor=#dcfce7;strokeColor=#16a34a;fontSize=10;align=left;spacingLeft=6;" vertex="1" parent="zone-frontend">
+          <mxGeometry x="820" y="40" width="155" height="140" as="geometry" />
+        </mxCell>
+
+        <!-- HistoryView -->
+        <mxCell id="history" value="HistoryView.jsx&#xa;──────────────&#xa;Commits list&#xa;Rollback button&#xa;localStorage:&#xa;kiro-git-history" style="rounded=1;fillColor=#dcfce7;strokeColor=#16a34a;fontSize=10;align=left;spacingLeft=6;" vertex="1" parent="zone-frontend">
+          <mxGeometry x="820" y="200" width="155" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- CloudPanel -->
+        <mxCell id="cloud-panel" value="&lt;b&gt;CloudPanel.jsx&lt;/b&gt;&#xa;──────────────&#xa;Tab: Supabase&#xa;  → iframe + fallback&#xa;  → Dashboard link&#xa;  → Feature cards&#xa;  → Quick actions&#xa;Tab: Vercel&#xa;  → iframe + fallback&#xa;  → Dashboard link&#xa;  → Deployments" style="rounded=1;fillColor=#bbf7d0;strokeColor=#16a34a;fontSize=10;align=left;spacingLeft=6;" vertex="1" parent="zone-frontend">
+          <mxGeometry x="1000" y="40" width="165" height="185" as="geometry" />
+        </mxCell>
+
+        <!-- IDE Zone -->
+        <mxCell id="zone-ide" value="💻 IDE — mini VSCode (components/IDE/)" style="swimlane;startSize=25;fillColor=#f0fdf4;strokeColor=#4ade80;fontSize=11;rounded=1;" vertex="1" parent="zone-frontend">
+          <mxGeometry x="1190" y="35" width="630" height="530" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ide-layout" value="IDELayout.jsx&#xa;Activity bar 40px&#xa;Resizable panels&#xa;(mousedown delta)&#xa;Left: 220px default&#xa;Right: 260px default&#xa;Auto-collapse &lt;700px" style="rounded=1;fillColor=#bbf7d0;strokeColor=#16a34a;fontSize=10;align=left;spacingLeft=6;" vertex="1" parent="zone-ide">
+          <mxGeometry x="10" y="35" width="145" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ide-context" value="&lt;b&gt;IDEContext.jsx&lt;/b&gt;&#xa;React Context&#xa;─────────────&#xa;files[] state&#xa;openTabs[]&#xa;activeKey&#xa;gitChanges (Set)&#xa;stagedFiles (Set)&#xa;commitHistory&#xa;CRUD: createFile&#xa;deleteFile/Folder&#xa;renameFile&#xa;saveNow()&#xa;fileKey pattern:&#xa;`${path}${name}`" style="rounded=1;fillColor=#4ade80;strokeColor=#16a34a;fontSize=10;align=left;spacingLeft=6;" vertex="1" parent="zone-ide">
+          <mxGeometry x="170" y="35" width="155" height="210" as="geometry" />
+        </mxCell>
+
+        <mxCell id="file-explorer" value="FileExplorer.jsx&#xa;─────────────&#xa;Recursive tree&#xa;Drag &amp; drop&#xa;Context menu&#xa;Inline rename&#xa;Folder open state&#xa;New file/folder&#xa;selectedFolderPath" style="rounded=1;fillColor=#dcfce7;strokeColor=#16a34a;fontSize=10;align=left;spacingLeft=6;" vertex="1" parent="zone-ide">
+          <mxGeometry x="10" y="165" width="145" height="130" as="geometry" />
+        </mxCell>
+
+        <mxCell id="code-editor" value="&lt;b&gt;CodeEditor.jsx&lt;/b&gt;&#xa;─────────────────&#xa;textarea (transparent)&#xa;+ hljs &lt;pre&gt; overlay&#xa;Line numbers sync&#xa;Tab → 2 spaces&#xa;Auto brackets&#xa;caretColor: #374151&#xa;color: transparent&#xa;Debounced save (5s)&#xa;Keyboard: Ctrl+S" style="rounded=1;fillColor=#bbf7d0;strokeColor=#16a34a;fontSize=10;align=left;spacingLeft=6;" vertex="1" parent="zone-ide">
+          <mxGeometry x="340" y="35" width="160" height="170" as="geometry" />
+        </mxCell>
+
+        <mxCell id="git-panel" value="GitPanel.jsx&#xa;────────────&#xa;Staged files&#xa;Changed files&#xa;Commit message&#xa;Stage/Unstage&#xa;Discard changes&#xa;Commit → history&#xa;GitHub connect&#xa;Push to remote" style="rounded=1;fillColor=#dcfce7;strokeColor=#16a34a;fontSize=10;align=left;spacingLeft=6;" vertex="1" parent="zone-ide">
+          <mxGeometry x="340" y="220" width="145" height="140" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ide-utils" value="utils.jsx&#xa;──────────&#xa;EXT_META map&#xa;getLang(name)&#xa;getMeta(name)&#xa;fileKey(f)&#xa;highlightCode()&#xa;FileIcon component" style="rounded=1;fillColor=#dcfce7;strokeColor=#16a34a;fontSize=10;align=left;spacingLeft=6;" vertex="1" parent="zone-ide">
+          <mxGeometry x="500" y="35" width="120" height="115" as="geometry" />
+        </mxCell>
+
+        <mxCell id="img-analysis" value="ImageAnalysisPanel.jsx&#xa;Stack selector&#xa;Analysis mode&#xa;(clone/redesign/inspect)&#xa;File upload → base64&#xa;POST /api/analyze-image" style="rounded=1;fillColor=#dcfce7;strokeColor=#16a34a;fontSize=10;align=left;spacingLeft=6;" vertex="1" parent="zone-ide">
+          <mxGeometry x="10" y="315" width="170" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- Hooks -->
+        <mxCell id="zone-hooks" value="🪝 Hooks" style="swimlane;startSize=25;fillColor=#f0fdf4;strokeColor=#4ade80;fontSize=11;rounded=1;" vertex="1" parent="zone-frontend">
+          <mxGeometry x="450" y="270" width="730" height="130" as="geometry" />
+        </mxCell>
+
+        <mxCell id="hook-generate" value="useGenerate.js&#xa;────────────────────&#xa;POST /api/generate&#xa;Demo fallback mode&#xa;onSuccess(result)&#xa;isLoading / error&#xa;abortController" style="rounded=1;fillColor=#dcfce7;strokeColor=#4ade80;fontSize=10;align=left;spacingLeft=6;" vertex="1" parent="zone-hooks">
+          <mxGeometry x="10" y="35" width="155" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="hook-github" value="useGitHub.js&#xa;────────────────────&#xa;POST /api/github/push&#xa;SHA-aware commits&#xa;ghStatus: idle/pushing&#xa;/ok/error" style="rounded=1;fillColor=#dcfce7;strokeColor=#4ade80;fontSize=10;align=left;spacingLeft=6;" vertex="1" parent="zone-hooks">
+          <mxGeometry x="180" y="35" width="155" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="hook-device" value="useDevice.js&#xa;useIsMobile.js&#xa;────────────────────&#xa;ResizeObserver&#xa;breakpoint detection&#xa;mobile/tablet/desktop" style="rounded=1;fillColor=#dcfce7;strokeColor=#4ade80;fontSize=10;align=left;spacingLeft=6;" vertex="1" parent="zone-hooks">
+          <mxGeometry x="350" y="35" width="155" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="hook-bottomnav" value="BottomNav.jsx&#xa;────────────────────&#xa;Mobile 4 tabs&#xa;Preview/Code&#xa;Chat/Cloud" style="rounded=1;fillColor=#dcfce7;strokeColor=#4ade80;fontSize=10;align=left;spacingLeft=6;" vertex="1" parent="zone-hooks">
+          <mxGeometry x="520" y="35" width="145" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════ -->
+        <!-- ZONE: BACKEND FASTAPI -->
+        <!-- ═══════════════════════════════════════ -->
+        <mxCell id="zone-backend" value="🐍  BACKEND — FastAPI / Python (backend/)" style="swimlane;startSize=30;fillColor=#faf5ff;strokeColor=#a855f7;fontStyle=1;fontSize=13;fontColor=#7e22ce;rounded=1;arcSize=2;" vertex="1" parent="1">
+          <mxGeometry x="30" y="860" width="1840" height="560" as="geometry" />
+        </mxCell>
+
+        <!-- brain.py -->
+        <mxCell id="brain" value="&lt;b&gt;brain.py&lt;/b&gt;&#xa;FastAPI App&#xa;────────────&#xa;CORS middleware&#xa;StaticFiles mount&#xa;Pydantic models&#xa;uvicorn :8000" style="rounded=1;fillColor=#e9d5ff;strokeColor=#7e22ce;fontSize=11;align=left;spacingLeft=6;fontStyle=1;" vertex="1" parent="zone-backend">
+          <mxGeometry x="20" y="45" width="140" height="110" as="geometry" />
+        </mxCell>
+
+        <!-- Routes Group -->
+        <mxCell id="zone-routes" value="📡 API Routes (brain.py)" style="swimlane;startSize=25;fillColor=#faf5ff;strokeColor=#c084fc;fontSize=11;rounded=1;" vertex="1" parent="zone-backend">
+          <mxGeometry x="180" y="40" width="660" height="490" as="geometry" />
+        </mxCell>
+
+        <mxCell id="route-health" value="GET /api/health&#xa;→ {status, claude_ok, version}" style="rounded=1;fillColor=#f3e8ff;strokeColor=#c084fc;fontSize=10;" vertex="1" parent="zone-routes">
+          <mxGeometry x="10" y="35" width="195" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="route-models" value="GET /api/models&#xa;→ list available models" style="rounded=1;fillColor=#f3e8ff;strokeColor=#c084fc;fontSize=10;" vertex="1" parent="zone-routes">
+          <mxGeometry x="215" y="35" width="195" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="route-plan" value="POST /api/plan&#xa;prompt → plan + sections" style="rounded=1;fillColor=#f3e8ff;strokeColor=#c084fc;fontSize=10;" vertex="1" parent="zone-routes">
+          <mxGeometry x="420" y="35" width="195" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="route-generate" value="POST /api/generate&#xa;prompt + stack + image&#xa;→ {files[], explanation,&#xa;suggestions[], model,&#xa;tokens, design_system}" style="rounded=1;fillColor=#d8b4fe;strokeColor=#7e22ce;fontSize=10;fontStyle=1;" vertex="1" parent="zone-routes">
+          <mxGeometry x="10" y="95" width="195" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="route-analyze" value="POST /api/analyze-image&#xa;base64 → analysis JSON" style="rounded=1;fillColor=#f3e8ff;strokeColor=#c084fc;fontSize=10;" vertex="1" parent="zone-routes">
+          <mxGeometry x="215" y="95" width="195" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="route-upload" value="POST /api/upload&#xa;file → base64 stored" style="rounded=1;fillColor=#f3e8ff;strokeColor=#c084fc;fontSize=10;" vertex="1" parent="zone-routes">
+          <mxGeometry x="420" y="95" width="195" height="45" as="geometry" />
+        </mxCell>
+        <mxCell id="route-projects" value="GET /api/projects&#xa;POST /api/projects&#xa;GET /api/projects/{id}&#xa;DELETE /api/projects/{id}" style="rounded=1;fillColor=#f3e8ff;strokeColor=#c084fc;fontSize=10;align=left;spacingLeft=6;" vertex="1" parent="zone-routes">
+          <mxGeometry x="10" y="190" width="195" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="route-files" value="GET  /api/projects/{id}/files&#xa;GET  /api/projects/{id}/files/flat&#xa;GET  /api/projects/{id}/file&#xa;POST /api/projects/{id}/file&#xa;POST /api/projects/{id}/file/create&#xa;DEL  /api/projects/{id}/file&#xa;POST /api/projects/{id}/file/rename&#xa;POST /api/projects/{id}/folder" style="rounded=1;fillColor=#f3e8ff;strokeColor=#c084fc;fontSize=10;align=left;spacingLeft=6;" vertex="1" parent="zone-routes">
+          <mxGeometry x="215" y="185" width="215" height="120" as="geometry" />
+        </mxCell>
+        <mxCell id="route-preview" value="GET /api/projects/{id}/preview/{path}&#xa;→ serve static file&#xa;GET /api/projects/{id}/assembled&#xa;→ strip imports, inline CSS&#xa;→ React CDN + Babel&#xa;→ full standalone HTML" style="rounded=1;fillColor=#d8b4fe;strokeColor=#7e22ce;fontSize=10;align=left;spacingLeft=6;" vertex="1" parent="zone-routes">
+          <mxGeometry x="440" y="185" width="200" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="route-chat" value="GET  /api/projects/{id}/chat&#xa;POST /api/projects/{id}/chat&#xa;→ chat.json persistence" style="rounded=1;fillColor=#f3e8ff;strokeColor=#c084fc;fontSize=10;align=left;spacingLeft=6;" vertex="1" parent="zone-routes">
+          <mxGeometry x="10" y="280" width="195" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="route-backups" value="GET  /api/projects/{id}/backups&#xa;POST /api/projects/{id}/backups&#xa;POST /api/projects/{id}/backups/{n}/restore" style="rounded=1;fillColor=#f3e8ff;strokeColor=#c084fc;fontSize=10;align=left;spacingLeft=6;" vertex="1" parent="zone-routes">
+          <mxGeometry x="215" y="320" width="220" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="route-github" value="POST /api/github/push&#xa;SHA-aware Git push&#xa;GET  /api/git/status&#xa;POST /api/git/commit&#xa;GET  /api/history&#xa;POST /api/rollback&#xa;GET  /api/files" style="rounded=1;fillColor=#f3e8ff;strokeColor=#c084fc;fontSize=10;align=left;spacingLeft=6;" vertex="1" parent="zone-routes">
+          <mxGeometry x="10" y="365" width="195" height="110" as="geometry" />
+        </mxCell>
+
+        <!-- Python Modules -->
+        <mxCell id="zone-modules" value="📦 Modules Python" style="swimlane;startSize=25;fillColor=#faf5ff;strokeColor=#c084fc;fontSize=11;rounded=1;" vertex="1" parent="zone-backend">
+          <mxGeometry x="860" y="40" width="960" height="490" as="geometry" />
+        </mxCell>
+
+        <mxCell id="router-py" value="&lt;b&gt;router.py&lt;/b&gt; — AIRouter&#xa;────────────────────────&#xa;call_claude() → 3 retries&#xa;  timeout: 300s&#xa;  max_tokens: 16 000&#xa;enrich_prompt() → design_system&#xa;post_process_files() → fix CSS&#xa;_apply_patches() → edit mode&#xa;_detect_site_type()&#xa;_extract_json()&#xa;analyze_image()" style="rounded=1;fillColor=#d8b4fe;strokeColor=#7e22ce;fontSize=11;align=left;spacingLeft=6;fontStyle=1;" vertex="1" parent="zone-modules">
+          <mxGeometry x="15" y="35" width="220" height="165" as="geometry" />
+        </mxCell>
+
+        <mxCell id="design-system-py" value="&lt;b&gt;design_system.py&lt;/b&gt;&#xa;──────────────────────&#xa;generate_design_system()&#xa;  detect_project_type()&#xa;  wants_dark_mode()&#xa;  find_best_palette()&#xa;  find_best_fonts()&#xa;  find_best_style()&#xa;  find_landing_pattern()&#xa;  find_reasoning()&#xa;format_for_prompt() → block&#xa;get_summary() → frontend&#xa;─────────────&#xa;📊 119 palettes&#xa;🎨 84 styles&#xa;✏️  73 font combos&#xa;📐 34 landing patterns" style="rounded=1;fillColor=#d8b4fe;strokeColor=#7e22ce;fontSize=11;align=left;spacingLeft=6;fontStyle=1;" vertex="1" parent="zone-modules">
+          <mxGeometry x="250" y="35" width="210" height="255" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ui-data" value="ui_data/ (CSV)&#xa;──────────────&#xa;styles.csv (84 rows)&#xa;colors.csv (119 rows)&#xa;typography.csv (73 rows)&#xa;landing.csv (34 rows)&#xa;products.csv (59 rows)&#xa;ui-reasoning.csv" style="rounded=1;fillColor=#f3e8ff;strokeColor=#c084fc;fontSize=11;align=left;spacingLeft=6;" vertex="1" parent="zone-modules">
+          <mxGeometry x="475" y="35" width="180" height="130" as="geometry" />
+        </mxCell>
+
+        <mxCell id="prompts-py" value="prompts.py&#xa;────────────────────&#xa;SYSTEM_PROMPT_MAIN&#xa;  • Design System rules&#xa;  • Typography rules&#xa;  • Spacing/Layout&#xa;  • Animations&#xa;  • Components&#xa;  • Responsive (MANDATORY)&#xa;  • Images → SVG/CSS only&#xa;  • Content → no Lorem Ipsum&#xa;  • Quality Standards (7)&#xa;  • Token efficiency&#xa;SYSTEM_PROMPT_ANALYZE&#xa;SYSTEM_PROMPT_EDIT&#xa;VISION_PROMPTS&#xa;PLAN_PROMPT&#xa;build_system_prompt()&#xa;build_edit_prompt()" style="rounded=1;fillColor=#f3e8ff;strokeColor=#c084fc;fontSize=11;align=left;spacingLeft=6;" vertex="1" parent="zone-modules">
+          <mxGeometry x="670" y="35" width="195" height="270" as="geometry" />
+        </mxCell>
+
+        <mxCell id="projects-manager" value="projects_manager.py&#xa;────────────────────&#xa;ProjectsManager class&#xa;create_project()&#xa;list_projects()&#xa;get_project()&#xa;save_project_files()&#xa;get_project_files_flat()&#xa;get_file_tree()&#xa;read_file() / write_file()&#xa;create_file() / delete_file()&#xa;rename_file() / create_folder()&#xa;list_backups() / create_backup()&#xa;restore_backup()&#xa;─────────────&#xa;Storage: backend/projects/{id}/" style="rounded=1;fillColor=#e9d5ff;strokeColor=#7e22ce;fontSize=11;align=left;spacingLeft=6;" vertex="1" parent="zone-modules">
+          <mxGeometry x="15" y="220" width="225" height="255" as="geometry" />
+        </mxCell>
+
+        <mxCell id="git-manager" value="git_manager.py&#xa;────────────────────&#xa;GitManager class&#xa;init_repo()&#xa;stage_files()&#xa;commit()&#xa;get_status()&#xa;push_to_github()&#xa;  (SHA-aware)&#xa;get_log()" style="rounded=1;fillColor=#f3e8ff;strokeColor=#c084fc;fontSize=11;align=left;spacingLeft=6;" vertex="1" parent="zone-modules">
+          <mxGeometry x="475" y="180" width="175" height="170" as="geometry" />
+        </mxCell>
+
+        <mxCell id="parsers-py" value="parsers.py&#xa;────────────────────&#xa;parse_response()&#xa;_parse_multi_file()&#xa;_parse_single_file()&#xa;_fallback_html()&#xa;extract_files_from_json()" style="rounded=1;fillColor=#f3e8ff;strokeColor=#c084fc;fontSize=11;align=left;spacingLeft=6;" vertex="1" parent="zone-modules">
+          <mxGeometry x="670" y="320" width="180" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ui-knowledge" value="ui_knowledge.py&#xa;────────────────────&#xa;STYLES dict (57 entries)&#xa;PALETTES dict (95 entries)&#xa;FONT_COMBOS list (56)&#xa;CONVERSION_PATTERNS&#xa;(legacy — now using CSV)" style="rounded=1;fillColor=#f3e8ff;strokeColor=#c084fc;fontSize=11;align=left;spacingLeft=6;" vertex="1" parent="zone-modules">
+          <mxGeometry x="475" y="365" width="175" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════ -->
+        <!-- ZONE: FILE STORAGE -->
+        <!-- ═══════════════════════════════════════ -->
+        <mxCell id="zone-storage" value="💾  FILE STORAGE — backend/projects/{id}/" style="swimlane;startSize=30;fillColor=#fff7ed;strokeColor=#f97316;fontStyle=1;fontSize=13;fontColor=#c2410c;rounded=1;arcSize=2;" vertex="1" parent="1">
+          <mxGeometry x="30" y="1450" width="1200" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="storage-kiro" value="kiro.json&#xa;id, name, created_at&#xa;stack, description" style="rounded=1;fillColor=#fed7aa;strokeColor=#f97316;fontSize=11;" vertex="1" parent="zone-storage">
+          <mxGeometry x="20" y="50" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="storage-index" value="index.html&#xa;Main HTML file&#xa;(Vite shell or&#xa;standalone HTML)" style="rounded=1;fillColor=#fed7aa;strokeColor=#f97316;fontSize=11;" vertex="1" parent="zone-storage">
+          <mxGeometry x="180" y="50" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="storage-src" value="src/&#xa;App.jsx&#xa;index.css&#xa;main.jsx&#xa;components/..." style="rounded=1;fillColor=#fed7aa;strokeColor=#f97316;fontSize=11;" vertex="1" parent="zone-storage">
+          <mxGeometry x="340" y="50" width="130" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="storage-chat" value="chat.json&#xa;[{id,role,text,&#xa;timestamp,model,&#xa;tokens,cost}]" style="rounded=1;fillColor=#fed7aa;strokeColor=#f97316;fontSize=11;" vertex="1" parent="zone-storage">
+          <mxGeometry x="490" y="50" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="storage-backups" value=".backups/&#xa;backup-YYYYMMDD-HHmmss/&#xa;  _backup_meta.json&#xa;  all project files" style="rounded=1;fillColor=#fed7aa;strokeColor=#f97316;fontSize=11;" vertex="1" parent="zone-storage">
+          <mxGeometry x="650" y="50" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="storage-git" value=".git/&#xa;Local git repo&#xa;per project" style="rounded=1;fillColor=#fed7aa;strokeColor=#f97316;fontSize=11;" vertex="1" parent="zone-storage">
+          <mxGeometry x="840" y="50" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="storage-env" value=".env&#xa;ANTHROPIC_API_KEY&#xa;GROQ_API_KEY&#xa;GEMINI_API_KEY&#xa;CLAUDE_MODEL" style="rounded=1;fillColor=#fed7aa;strokeColor=#f97316;fontSize=11;" vertex="1" parent="zone-storage">
+          <mxGeometry x="980" y="50" width="140" height="75" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════ -->
+        <!-- ZONE: EXTERNAL SERVICES -->
+        <!-- ═══════════════════════════════════════ -->
+        <mxCell id="zone-external" value="☁️  EXTERNAL SERVICES" style="swimlane;startSize=30;fillColor=#fef2f2;strokeColor=#ef4444;fontStyle=1;fontSize=13;fontColor=#991b1b;rounded=1;arcSize=2;" vertex="1" parent="1">
+          <mxGeometry x="1260" y="1450" width="610" height="200" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ext-claude" value="Claude Sonnet 4.6&#xa;api.anthropic.com&#xa;max_tokens: 16 000&#xa;timeout: 300s&#xa;3 retries" style="rounded=1;fillColor=#fecaca;strokeColor=#ef4444;fontSize=11;fontStyle=1;" vertex="1" parent="zone-external">
+          <mxGeometry x="15" y="45" width="145" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="ext-github" value="GitHub API&#xa;api.github.com&#xa;SHA-aware push&#xa;Token: ghp_..." style="rounded=1;fillColor=#fecaca;strokeColor=#ef4444;fontSize=11;" vertex="1" parent="zone-external">
+          <mxGeometry x="175" y="45" width="120" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ext-supabase" value="Supabase&#xa;supabase.com/dashboard&#xa;PostgreSQL + Auth&#xa;+ Storage + Edge" style="rounded=1;fillColor=#fecaca;strokeColor=#ef4444;fontSize=11;" vertex="1" parent="zone-external">
+          <mxGeometry x="310" y="45" width="130" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ext-vercel" value="Vercel&#xa;vercel.com/dashboard&#xa;Deploy + Domains&#xa;+ Analytics" style="rounded=1;fillColor=#fecaca;strokeColor=#ef4444;fontSize=11;" vertex="1" parent="zone-external">
+          <mxGeometry x="455" y="45" width="130" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════ -->
+        <!-- FLOW: GENERATION (data flow) -->
+        <!-- ═══════════════════════════════════════ -->
+        <mxCell id="zone-flow" value="🔄  GÉNÉRATION FLOW — User prompt → Site généré" style="swimlane;startSize=30;fillColor=#f0f9ff;strokeColor=#0ea5e9;fontStyle=1;fontSize=13;fontColor=#0369a1;rounded=1;arcSize=2;" vertex="1" parent="1">
+          <mxGeometry x="30" y="1680" width="1840" height="160" as="geometry" />
+        </mxCell>
+
+        <mxCell id="f1" value="1. User prompt&#xa;+ stack chips&#xa;(ChatSidebar)" style="rounded=1;fillColor=#bae6fd;strokeColor=#0ea5e9;fontSize=11;" vertex="1" parent="zone-flow">
+          <mxGeometry x="20" y="45" width="140" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="f2" value="2. POST /api/generate&#xa;(useGenerate hook)" style="rounded=1;fillColor=#bae6fd;strokeColor=#0ea5e9;fontSize=11;" vertex="1" parent="zone-flow">
+          <mxGeometry x="185" y="45" width="150" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="f3" value="3. detect_project_type()&#xa;wants_dark_mode()&#xa;(design_system.py)" style="rounded=1;fillColor=#bae6fd;strokeColor=#0ea5e9;fontSize=11;" vertex="1" parent="zone-flow">
+          <mxGeometry x="360" y="45" width="165" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="f4" value="4. generate_design_system()&#xa;palette + fonts + style&#xa;landing pattern" style="rounded=1;fillColor=#bae6fd;strokeColor=#0ea5e9;fontSize=11;" vertex="1" parent="zone-flow">
+          <mxGeometry x="550" y="45" width="165" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="f5" value="5. enrich_prompt()&#xa;= prompt + design_system&#xa;+ quality refs" style="rounded=1;fillColor=#bae6fd;strokeColor=#0ea5e9;fontSize=11;" vertex="1" parent="zone-flow">
+          <mxGeometry x="740" y="45" width="150" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="f6" value="6. call_claude()&#xa;Claude Sonnet 4.6&#xa;SYSTEM_PROMPT_MAIN" style="rounded=1;fillColor=#7dd3fc;strokeColor=#0369a1;fontSize=11;fontStyle=1;" vertex="1" parent="zone-flow">
+          <mxGeometry x="915" y="45" width="150" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="f7" value="7. _extract_json()&#xa;post_process_files()&#xa;fix CSS bugs" style="rounded=1;fillColor=#bae6fd;strokeColor=#0ea5e9;fontSize=11;" vertex="1" parent="zone-flow">
+          <mxGeometry x="1090" y="45" width="150" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="f8" value="8. save_project_files()&#xa;save chat.json&#xa;create backup" style="rounded=1;fillColor=#bae6fd;strokeColor=#0ea5e9;fontSize=11;" vertex="1" parent="zone-flow">
+          <mxGeometry x="1265" y="45" width="150" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="f9" value="9. /assembled →&#xa;strip imports, inline CSS&#xa;React CDN + Babel" style="rounded=1;fillColor=#bae6fd;strokeColor=#0ea5e9;fontSize=11;" vertex="1" parent="zone-flow">
+          <mxGeometry x="1440" y="45" width="155" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="f10" value="10. PreviewPanel&#xa;setCode(html)&#xa;iframe render" style="rounded=1;fillColor=#7dd3fc;strokeColor=#0369a1;fontSize=11;fontStyle=1;" vertex="1" parent="zone-flow">
+          <mxGeometry x="1620" y="45" width="145" height="65" as="geometry" />
+        </mxCell>
+
+        <!-- Flow arrows -->
+        <mxCell id="arr-f1-f2" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#0ea5e9;strokeWidth=2;" edge="1" parent="zone-flow" source="f1" target="f2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arr-f2-f3" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#0ea5e9;strokeWidth=2;" edge="1" parent="zone-flow" source="f2" target="f3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arr-f3-f4" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#0ea5e9;strokeWidth=2;" edge="1" parent="zone-flow" source="f3" target="f4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arr-f4-f5" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#0ea5e9;strokeWidth=2;" edge="1" parent="zone-flow" source="f4" target="f5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arr-f5-f6" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#0369a1;strokeWidth=2;" edge="1" parent="zone-flow" source="f5" target="f6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arr-f6-f7" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#0ea5e9;strokeWidth=2;" edge="1" parent="zone-flow" source="f6" target="f7">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arr-f7-f8" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#0ea5e9;strokeWidth=2;" edge="1" parent="zone-flow" source="f7" target="f8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arr-f8-f9" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#0ea5e9;strokeWidth=2;" edge="1" parent="zone-flow" source="f8" target="f9">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arr-f9-f10" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#0369a1;strokeWidth=2;" edge="1" parent="zone-flow" source="f9" target="f10">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ═══════════════════════════════════════ -->
+        <!-- MAIN CONNECTIONS -->
+        <!-- ═══════════════════════════════════════ -->
+
+        <!-- Browser → Frontend -->
+        <mxCell id="conn-browser-fe" value="HMR / Hot Reload" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#3b82f6;strokeWidth=2;dashed=1;" edge="1" parent="1" source="zone-browser" target="zone-frontend">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Frontend → Backend -->
+        <mxCell id="conn-fe-be" value="HTTP /api/* (Vite proxy)" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#22c55e;strokeWidth=2.5;fontStyle=1;" edge="1" parent="1" source="hook-generate" target="zone-backend">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Backend → External Claude -->
+        <mxCell id="conn-be-claude" value="HTTPS POST&#xa;api.anthropic.com/v1/messages" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#ef4444;strokeWidth=2.5;fontStyle=1;" edge="1" parent="1" source="router-py" target="ext-claude">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Backend → GitHub -->
+        <mxCell id="conn-be-github" value="HTTPS&#xa;api.github.com" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#ef4444;strokeWidth=2;" edge="1" parent="1" source="git-manager" target="ext-github">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Backend → Storage -->
+        <mxCell id="conn-be-storage" value="File I/O (disk)" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#f97316;strokeWidth=2;" edge="1" parent="1" source="projects-manager" target="zone-storage">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- design_system → ui_data -->
+        <mxCell id="conn-ds-csv" value="read CSV" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#a855f7;strokeWidth=1.5;dashed=1;" edge="1" parent="1" source="design-system-py" target="ui-data">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- CloudPanel → Supabase/Vercel external -->
+        <mxCell id="conn-cloud-supa" value="iframe / link ↗" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#ef4444;strokeWidth=1.5;dashed=1;" edge="1" parent="1" source="cloud-panel" target="ext-supabase">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="conn-cloud-vercel" value="iframe / link ↗" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#ef4444;strokeWidth=1.5;dashed=1;" edge="1" parent="1" source="cloud-panel" target="ext-vercel">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
